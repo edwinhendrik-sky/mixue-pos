@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Karyawan - Mixue Management</title>
+    <!-- Favicon Logo Mixue -->
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍦</text></svg>">
+    <style>
+        :root {
+            --mixue-red: #e31b23;
+            --mixue-dark-red: #c2151d;
+            --mixue-bg: #fff0f1;
+        }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #fff0f1 0%, #ffcdd2 100%); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+            position: relative;
+            overflow: hidden;
+        }
+        body::before {
+            content: "🍦 👑 🥤 🍦 👑";
+            position: absolute;
+            top: 20px;
+            font-size: 35px;
+            opacity: 0.12;
+            letter-spacing: 40px;
+        }
+        .login-card { 
+            background: white; 
+            padding: 35px 30px; 
+            border-radius: 14px; 
+            box-shadow: 0 10px 30px rgba(227, 27, 35, 0.2); 
+            width: 100%; 
+            max-width: 400px; 
+            border-top: 8px solid var(--mixue-red); 
+            box-sizing: border-box; 
+            position: relative;
+            z-index: 2;
+        }
+        .mixue-logo-area {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .mixue-logo-area img {
+            width: 110px;
+            height: 110px;
+            object-fit: contain;
+            background: #fff5f5;
+            padding: 8px;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(227, 27, 35, 0.2);
+            border: 2px solid #ffcdd2;
+        }
+        h2 { color: var(--mixue-red); text-align: center; margin: 10px 0 20px 0; font-size: 20px; letter-spacing: 0.5px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px; color: #444; }
+        input, button { width: 100%; padding: 11px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; margin-top: 5px; font-size: 14px; }
+        input:focus { border-color: var(--mixue-red); outline: none; box-shadow: 0 0 6px rgba(227, 27, 35, 0.3); }
+        button { background-color: var(--mixue-red); color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+        button:hover { background-color: var(--mixue-dark-red); }
+        .hint { font-size: 12px; color: #666; margin-top: 18px; text-align: center; line-height: 1.5; background: #fff8f8; padding: 10px; border-radius: 6px; border: 1px dashed #ffcdd2; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="mixue-logo-area">
+        <!-- Logo Resmi Mixue Sesuai Lampiran -->
+        <img src="logo-mixue.png" alt="Mixue Logo">
+        <h2>MANAGEMENT SYSTEM ABSENSI</h2>
+    </div>
+    
+    <div class="form-group">
+        <label>ID Karyawan :</label>
+        <input type="text" id="employeeIdInput" placeholder="Contoh: SMB-001, MAJ-001, NAN-001">
+    </div>
+    <div class="form-group">
+        <label>Password:</label>
+        <input type="password" id="employeePinInput" placeholder="Masukkan password">
+    </div>
+    <button onclick="login()">Masuk Aplikasi</button>
+    
+    <div class="hint">
+        🍦 <b>Karyawan:</b> Password <b>1234</b><br>
+    </div>
+</div>
+
+<script>
+    async function login() {
+        const employee_id = document.getElementById('employeeIdInput').value.trim();
+        const pin = document.getElementById('employeePinInput').value.trim();
+
+        if (!employee_id || !pin) {
+            alert('Masukkan ID Karyawan dan Password!');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employee_id, pin })
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                localStorage.setItem('employee', JSON.stringify(result.employee));
+                if (result.employee.employee_id === 'admin') {
+                    window.location.href = 'admin.html';
+                } else {
+                    window.location.href = 'index.html';
+                }
+            } else {
+                alert(result.message || 'ID atau Password salah!');
+            }
+        } catch (err) {
+            alert('Terjadi kesalahan koneksi ke server.');
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - Mixue Management System</title>
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍦</text></svg>">
+    <style>
+        :root {
+            --mixue-red: #e31b23;
+            --mixue-dark-red: #c2151d;
+            --mixue-light-bg: #fff0f1;
+            --mixue-border: #ffcdd2;
+        }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #fff0f1 0%, #ffcdd2 100%); 
+            color: #333; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        .container { 
+            max-width: 1300px; 
+            margin: auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 14px; 
+            box-shadow: 0 10px 25px rgba(227, 27, 35, 0.15); 
+            border-top: 10px solid var(--mixue-red); 
+        }
+        .admin-header-flex {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 5px;
+        }
+        .admin-header-flex img {
+            width: 65px;
+            height: 65px;
+            object-fit: contain;
+            background: #fff;
+            padding: 4px;
+            border-radius: 50%;
+            border: 2px solid var(--mixue-border);
+            box-shadow: 0 4px 12px rgba(227, 27, 35, 0.15);
+        }
+        h2 { color: var(--mixue-red); text-align: center; font-size: 26px; margin: 0; }
+        h3 { color: #2c3e50; font-size: 18px; margin-bottom: 15px; }
+        
+        .header-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: #fff8f8; 
+            padding: 15px 22px; 
+            border-radius: 10px; 
+            margin-bottom: 25px; 
+            border: 1px solid var(--mixue-border);
+        }
+        .nav-tabs { 
+            display: flex; 
+            gap: 12px; 
+            margin-bottom: 25px; 
+            border-bottom: 2px solid var(--mixue-border); 
+            padding-bottom: 12px; 
+            overflow-x: auto; 
+        }
+        .nav-tabs button { 
+            padding: 11px 22px; 
+            background: #fce4ec; 
+            border: none; 
+            font-weight: bold; 
+            color: var(--mixue-dark-red); 
+            border-radius: 8px; 
+            cursor: pointer; 
+            white-space: nowrap; 
+            transition: all 0.2s ease; 
+        }
+        .nav-tabs button:hover { background: #f8bbd0; }
+        .nav-tabs button.active { 
+            background: var(--mixue-red); 
+            color: white; 
+            box-shadow: 0 4px 12px rgba(227, 27, 35, 0.3);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card { padding: 18px; border-radius: 10px; text-align: center; color: white; box-shadow: 0 6px 15px rgba(0,0,0,0.08); }
+        .card-total { background: linear-gradient(135deg, #3a7bd5, #3a6073); }
+        .card-present { background: linear-gradient(135deg, #11998e, #38ef7d); }
+        .card-absent { background: linear-gradient(135deg, var(--mixue-red), #ff416c); }
+        .card-rate { background: linear-gradient(135deg, #8e2de2, #4a00e0); }
+        .stat-card h4 { margin: 0 0 6px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; }
+        .stat-card p { margin: 0; font-size: 26px; font-weight: bold; }
+
+        .filter-box { background: #fff5f5; padding: 18px; border-radius: 10px; margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; border: 1px solid var(--mixue-border); }
+        .filter-group { flex: 1; min-width: 220px; }
+        label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 13px; color: #444; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 13px; }
+        select:focus, input:focus { border-color: var(--mixue-red); outline: none; box-shadow: 0 0 5px rgba(227, 27, 35, 0.2); }
+        
+        .store-section-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+            border-top: 6px solid var(--mixue-red);
+        }
+        .store-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f1f1f1;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+
+        .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid #e0e0e0; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; white-space: nowrap; }
+        th, td { border-bottom: 1px solid #e0e0e0; padding: 11px 14px; text-align: left; vertical-align: middle; }
+        th { background-color: var(--mixue-red); color: white; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+        tr:hover { background-color: #fafafa; }
+        
+        .avatar-cell {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--mixue-border);
+            background: #eee;
+        }
+
+        .btn { background-color: var(--mixue-red); color: white; border: none; padding: 10px 18px; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+        .btn:hover { background-color: var(--mixue-dark-red); }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .btn-success { background-color: #27ae60; }
+        .btn-success:hover { background-color: #219653; }
+        .btn-edit { background-color: #f39c12; padding: 6px 12px; font-size: 12px; }
+        .btn-edit:hover { background-color: #e67e22; }
+        .btn-delete { background-color: #c0392b; padding: 6px 12px; font-size: 12px; }
+        .btn-delete:hover { background-color: #a93226; }
+
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; overflow-y: auto; padding: 20px; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 700px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto; border-top: 8px solid var(--mixue-red); }
+        .badge { padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; display: inline-block; }
+        .badge-success { background: #2ecc71; }
+        .badge-danger { background: #e74c3c; }
+        .section-title { font-weight: bold; color: var(--mixue-red); border-bottom: 2px solid var(--mixue-border); margin-top: 20px; margin-bottom: 15px; padding-bottom: 6px; font-size: 14px; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="admin-header-flex">
+        <img src="image_0b5a87.png" alt="Mixue Logo">
+        <h2>Dashboard Panel Administrator Mixue</h2>
+    </div>
+
+    <div class="header-bar">
+        <div>
+            <span style="font-weight: bold; color: var(--mixue-red); font-size: 15px;" id="adminName">👤 Administrator Pusat</span><br>
+            <small style="color: #666;">🍦 Sistem Manajemen Absensi, Operasional Cabang & Penggajian Per Toko</small>
+        </div>
+        <button onclick="logout()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">Logout</button>
+    </div>
+
+    <div class="nav-tabs">
+        <button class="active" onclick="switchTab('dashboardTab', event)">📊 Dashboard Per Toko</button>
+        <button onclick="switchTab('attendanceTab', event)">📋 Laporan Absensi</button>
+        <button onclick="switchTab('employeeTab', event)">👥 Data Karyawan Per Toko</button>
+        <button onclick="switchTab('salaryTab', event)">💰 Laporan & Komponen Gaji</button>
+    </div>
+
+    <!-- TAB 1: DASHBOARD PER TOKO -->
+    <div id="dashboardTab" class="tab-content active">
+        <h3>Ringkasan & Kehadiran Operasional Per Toko / Cabang Mixue (Urut ID Karyawan)</h3>
+        
+        <div class="filter-box">
+            <div class="filter-group">
+                <label>Filter Tampilan Toko:</label>
+                <select id="dashboardStoreFilter" onchange="renderDashboardPerStore()">
+                    <option value="">-- Semua Toko (Tampilkan Semua Cabang) --</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card card-total">
+                <h4>Total Karyawan</h4>
+                <p id="statTotalEmp">0</p>
+            </div>
+            <div class="stat-card card-present">
+                <h4>Sudah Absen Hari Ini</h4>
+                <p id="statPresentEmp">0</p>
+            </div>
+            <div class="stat-card card-absent">
+                <h4>Belum Absen</h4>
+                <p id="statAbsentEmp">0</p>
+            </div>
+            <div class="stat-card card-rate">
+                <h4>Tingkat Kehadiran</h4>
+                <p id="statAttendanceRate">0%</p>
+            </div>
+        </div>
+
+        <div id="storeDashboardContainer"></div>
+    </div>
+
+    <!-- TAB 2: LAPORAN ABSENSI -->
+    <div id="attendanceTab" class="tab-content">
+        <h3>Laporan Lengkap Absensi Karyawan Multi-Store</h3>
+        <div class="filter-box">
+            <div class="filter-group">
+                <label>Filter Toko / Cabang:</label>
+                <select id="filterStore" onchange="filterAttendance()">
+                    <option value="">-- Semua Toko --</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Filter Tanggal:</label>
+                <input type="date" id="filterDate" onchange="filterAttendance()">
+            </div>
+            <div class="filter-group" style="display: flex; align-items: flex-end;">
+                <button onclick="resetAttendanceFilter()" class="btn btn-secondary" style="width: 100%;">Reset Filter</button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID & Nama Karyawan</th>
+                        <th>Cabang Toko</th>
+                        <th>Shift</th>
+                        <th>Tanggal</th>
+                        <th>Masuk</th>
+                        <th>Pulang</th>
+                        <th>Selfie</th>
+                    </tr>
+                </thead>
+                <tbody id="attendanceTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB 3: MANAJEMEN KARYAWAN PER TOKO -->
+    <div id="employeeTab" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+            <h3>Daftar Karyawan Dikelompokkan Per Toko (Urut ID Karyawan)</h3>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="openAddEmployeeModal()" class="btn">+ Tambah Karyawan</button>
+                <button onclick="exportEmployeesCSV()" class="btn btn-success">📥 Export CSV</button>
+                <label class="btn btn-secondary" style="cursor: pointer; margin: 0; display: inline-block; line-height: normal; padding: 10px 18px;">
+                    📤 Import CSV <input type="file" id="importFile" accept=".csv" style="display: none;" onchange="importEmployeesCSV(event)">
+                </label>
+            </div>
+        </div>
+        
+        <div class="filter-box">
+            <div class="filter-group">
+                <label>Pilih Cabang Toko:</label>
+                <select id="employeeStoreFilter" onchange="renderEmployeePerStore()">
+                    <option value="">-- Semua Toko --</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="employeeStoreContainer"></div>
+    </div>
+
+    <!-- TAB 4: LAPORAN & KOMPONEN GAJI -->
+    <div id="salaryTab" class="tab-content">
+        <h3>Laporan Rincian Komponen Gaji & Penggajian Karyawan</h3>
+        <div class="filter-box" style="margin-bottom: 20px;">
+            <div class="filter-group" style="flex: 2;">
+                <label>Cari Karyawan (Nama atau ID):</label>
+                <input type="text" id="searchSalaryInput" placeholder="Ketik nama atau ID (Cth: CIM-001)..." onkeyup="filterSalaryTable()">
+            </div>
+            <div class="filter-group" style="display: flex; align-items: flex-end;">
+                <button onclick="resetSalarySearch()" class="btn btn-secondary" style="width: 100%;">Reset Pencarian</button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Foto</th>
+                        <th>ID & Nama</th>
+                        <th>Cabang Toko</th>
+                        <th>Gaji Pokok</th>
+                        <th>Tunjangan Total</th>
+                        <th>Bonus Total</th>
+                        <th>Potongan Total</th>
+                        <th>Estimasi Gaji Bersih</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="salaryTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL TAMBAH / EDIT KARYAWAN -->
+<div id="employeeModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle" style="color: var(--mixue-red); margin-top:0;">Tambah Karyawan & Komponen Gaji</h3>
+        <input type="hidden" id="editEmployeeId">
+        
+        <div class="section-title">1. Data Induk Karyawan (Parent)</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+                <label>ID Unik (Cth: CIM-001):</label>
+                <input type="text" id="modalEmpId" placeholder="CIM-XXX">
+            </div>
+            <div>
+                <label>Nama Lengkap:</label>
+                <input type="text" id="modalName" placeholder="Nama Karyawan">
+            </div>
+            <div>
+                <label>Jabatan:</label>
+                <input type="text" id="modalPosition" placeholder="OUTLET CREW / PROBATION">
+            </div>
+            <div>
+                <label>Cabang Toko:</label>
+                <select id="modalStoreSelect"></select>
+            </div>
+            <div>
+                <label>Bank & No Rekening:</label>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="modalBank" placeholder="Mandiri" style="width: 35%;">
+                    <input type="text" id="modalRekening" placeholder="No Rek" style="width: 65%;">
+                </div>
+            </div>
+            <div>
+                <label>Tanggal Join:</label>
+                <input type="date" id="modalJoinDate">
+            </div>
+            <div style="grid-column: span 2;">
+                <label>Foto Profil (URL Gambar atau Upload):</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="modalPhoto" placeholder="https://... atau unggah foto" style="flex: 1;">
+                    <input type="file" id="modalPhotoFile" accept="image/*" onchange="previewPhotoUpload(event)" style="font-size: 12px;">
+                </div>
+                <div style="margin-top: 8px;">
+                    <img id="photoPreview" src="" alt="Preview" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; display: none; border: 2px solid var(--mixue-border);">
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">2. Komponen Gaji & Tunjangan (Child)</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div><label>Gaji Pokok:</label><input type="number" id="salBasic" value="0"></div>
+            <div><label>Tunjangan Leader:</label><input type="number" id="salTunjLeader" value="0"></div>
+            <div><label>Tunjangan Weekend:</label><input type="number" id="salTunjWeekend" value="0"></div>
+            <div><label>Tunjangan Lembur:</label><input type="number" id="salTunjLembur" value="0"></div>
+            <div><label>Tunjangan Sosmed:</label><input type="number" id="salTunjSosmed" value="0"></div>
+            <div><label>Bonus Setor:</label><input type="number" id="salBonusSetor" value="0"></div>
+            <div><label>Bonus Lain-lain:</label><input type="number" id="salBonusLain" value="0"></div>
+            <div><label>Potongan Terlambat:</label><input type="number" id="salPotLate" value="0"></div>
+            <div><label>Potongan Absen:</label><input type="number" id="salPotAbsen" value="0"></div>
+            <div><label>Kasbon:</label><input type="number" id="salPotKasbon" value="0"></div>
+            <div><label>Potongan Lainnya:</label><input type="number" id="salPotLain" value="0"></div>
+        </div>
+
+        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 25px;">
+            <button onclick="closeModal()" class="btn btn-secondary">Batal</button>
+            <button onclick="saveEmployeeData()" class="btn">Simpan Data Lengkap</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const loggedInUser = JSON.parse(localStorage.getItem('employee'));
+    if (!loggedInUser || loggedInUser.employee_id !== 'admin') {
+        alert('Akses ditolak! Halaman ini khusus Administrator.');
+        window.location.href = 'login.html';
+    }
+
+    let allStores = [];
+    let allAttendance = [];
+    let allEmployees = [];
+
+    function switchTab(tabId, event) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    function logout() {
+        localStorage.removeItem('employee');
+        window.location.href = 'login.html';
+    }
+
+    async function loadInitialData() {
+        const storeRes = await fetch('/api/stores');
+        allStores = await storeRes.json();
+        
+        const filterStoreSelect = document.getElementById('filterStore');
+        const modalStoreSelect = document.getElementById('modalStoreSelect');
+        const dashboardStoreFilter = document.getElementById('dashboardStoreFilter');
+        const employeeStoreFilter = document.getElementById('employeeStoreFilter');
+
+        allStores.forEach(s => {
+            filterStoreSelect.innerHTML += `<option value="${s.store_name}">${s.store_name}</option>`;
+            modalStoreSelect.innerHTML += `<option value="${s.id}">${s.store_name}</option>`;
+            dashboardStoreFilter.innerHTML += `<option value="${s.store_name}">${s.store_name}</option>`;
+            employeeStoreFilter.innerHTML += `<option value="${s.store_name}">${s.store_name}</option>`;
+        });
+
+        dashboardStoreFilter.innerHTML += `<option value="Management SMB">Management SMB</option>`;
+        employeeStoreFilter.innerHTML += `<option value="Management SMB">Management SMB</option>`;
+
+        await loadEmployeeData();
+        await loadAttendanceData();
+    }
+
+    async function loadEmployeeData() {
+        const res = await fetch('/api/employees-with-salary');
+        allEmployees = await res.json();
+        
+        // Urutkan seluruh data karyawan berdasarkan employee_id secara ascending
+        allEmployees.sort((a, b) => (a.employee_id || '').localeCompare(b.employee_id || '', undefined, { numeric: true }));
+
+        renderEmployeePerStore();
+        renderSalaryTable(allEmployees);
+    }
+
+    async function loadAttendanceData() {
+        const res = await fetch('/api/attendance');
+        allAttendance = await res.json();
+        renderAttendanceTable(allAttendance);
+        renderDashboardPerStore();
+    }
+
+    function renderDashboardPerStore() {
+        // Filter out admin & urutkan berdasarkan employee_id
+        let validEmployees = allEmployees.filter(emp => emp.employee_id !== 'admin');
+        validEmployees.sort((a, b) => (a.employee_id || '').localeCompare(b.employee_id || '', undefined, { numeric: true }));
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayAttendance = allAttendance.filter(item => item.date === todayStr);
+        const selectedStore = document.getElementById('dashboardStoreFilter').value;
+
+        let totalEmp = 0;
+        let presentEmp = 0;
+        let absentEmp = 0;
+
+        let storeNames = [...new Set(validEmployees.map(e => e.store_name || 'Management SMB'))];
+        // Urutkan nama toko agar konsisten
+        storeNames.sort();
+
+        if (selectedStore) {
+            storeNames = [selectedStore];
+        }
+
+        const container = document.getElementById('storeDashboardContainer');
+        container.innerHTML = '';
+
+        storeNames.forEach(storeName => {
+            const empInStore = validEmployees.filter(e => (e.store_name || 'Management SMB') === storeName);
+            if (empInStore.length === 0) return;
+
+            let storePresentCount = 0;
+            let storeAbsentCount = 0;
+            let rowsHtml = '';
+
+            empInStore.forEach(emp => {
+                totalEmp++;
+                const record = todayAttendance.find(item => item.employee_id === emp.employee_id);
+                const photoUrl = emp.photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+
+                if (record) {
+                    presentEmp++;
+                    storePresentCount++;
+                    rowsHtml += `
+                        <tr>
+                            <td><img src="${photoUrl}" class="avatar-cell" alt="Foto"></td>
+                            <td><strong>[${emp.employee_id}]</strong> ${emp.name}<br><small>${emp.job_position}</small></td>
+                            <td><span style="color: #27ae60; font-weight: bold;">Hadir (In: ${record.clock_in || '-'}, Out: ${record.clock_out || '-'})</span></td>
+                        </tr>
+                    `;
+                } else {
+                    absentEmp++;
+                    storeAbsentCount++;
+                    rowsHtml += `
+                        <tr>
+                            <td><img src="${photoUrl}" class="avatar-cell" alt="Foto"></td>
+                            <td><strong>[${emp.employee_id}]</strong> ${emp.name}<br><small>${emp.job_position}</small></td>
+                            <td><span style="color: #e74c3c; font-weight: bold;">Belum Absen</span></td>
+                        </tr>
+                    `;
+                }
+            });
+
+            const rate = empInStore.length > 0 ? Math.round((storePresentCount / empInStore.length) * 100) : 0;
+
+            container.innerHTML += `
+                <div class="store-section-card">
+                    <div class="store-section-header">
+                        <div>
+                            <h4 style="margin: 0; color: var(--mixue-red); font-size: 16px;">🍦 Cabang: ${storeName}</h4>
+                            <small style="color: #666;">Total Karyawan: ${empInStore.length} orang | Hadir: ${storePresentCount} | Belum: ${storeAbsentCount}</small>
+                        </div>
+                        <span class="badge ${rate >= 75 ? 'badge-success' : 'badge-danger'}">Kehadiran: ${rate}%</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th width="50">Foto</th>
+                                    <th>ID & Nama Karyawan (Urut ID)</th>
+                                    <th>Status Kehadiran Hari Ini (${todayStr})</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById('statTotalEmp').textContent = totalEmp;
+        document.getElementById('statPresentEmp').textContent = presentEmp;
+        document.getElementById('statAbsentEmp').textContent = absentEmp;
+        const overallRate = totalEmp > 0 ? Math.round((presentEmp / totalEmp) * 100) : 0;
+        document.getElementById('statAttendanceRate').textContent = `${overallRate}%`;
+    }
+
+    function renderEmployeePerStore() {
+        let validEmployees = allEmployees.filter(emp => emp.employee_id !== 'admin');
+        validEmployees.sort((a, b) => (a.employee_id || '').localeCompare(b.employee_id || '', undefined, { numeric: true }));
+
+        const selectedStore = document.getElementById('employeeStoreFilter').value;
+        const container = document.getElementById('employeeStoreContainer');
+        container.innerHTML = '';
+
+        let storeNames = [...new Set(validEmployees.map(e => e.store_name || 'Management SMB'))];
+        storeNames.sort();
+
+        if (selectedStore) {
+            storeNames = [selectedStore];
+        }
+
+        storeNames.forEach(storeName => {
+            const empInStore = validEmployees.filter(e => (e.store_name || 'Management SMB') === storeName);
+            if (empInStore.length === 0) return;
+
+            let rowsHtml = '';
+            empInStore.forEach(emp => {
+                const photoUrl = emp.photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+                rowsHtml += `
+                    <tr>
+                        <td><img src="${photoUrl}" class="avatar-cell" alt="Foto"></td>
+                        <td><strong>${emp.employee_id}</strong></td>
+                        <td>${emp.name}<br><small style="color:#666;">${emp.job_position}</small></td>
+                        <td>${emp.bank} - ${emp.no_rekening}</td>
+                        <td>${emp.join_date || '-'}</td>
+                        <td>
+                            <button onclick="openEditEmployeeModal(${emp.id})" class="btn btn-edit">Edit</button>
+                            <button onclick="deleteEmployee(${emp.id})" class="btn btn-delete">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            container.innerHTML += `
+                <div class="store-section-card">
+                    <div class="store-section-header">
+                        <h4 style="margin: 0; color: var(--mixue-red); font-size: 16px;">🏢 ${storeName} (${empInStore.length} Karyawan)</h4>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th width="50">Foto</th>
+                                    <th>ID Unik</th>
+                                    <th>Nama & Jabatan</th>
+                                    <th>Bank & Rekening</th>
+                                    <th>Tanggal Join</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function renderSalaryTable(dataList) {
+        const tbody = document.getElementById('salaryTableBody');
+        tbody.innerHTML = '';
+        let validEmployees = dataList.filter(emp => emp.employee_id !== 'admin');
+        validEmployees.sort((a, b) => (a.employee_id || '').localeCompare(b.employee_id || '', undefined, { numeric: true }));
+
+        if (validEmployees.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">Tidak ada data gaji yang ditemukan.</td></tr>`;
+            return;
+        }
+
+        validEmployees.forEach(emp => {
+            const photoUrl = emp.photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+            const basic = parseFloat(emp.basic_salary) || 0;
+            const tLeader = parseFloat(emp.allowance_leader) || 0;
+            const tWknd = parseFloat(emp.allowance_weekend) || 0;
+            const tOver = parseFloat(emp.allowance_overtime) || 0;
+            const tSosmed = parseFloat(emp.allowance_sosmed) || 0;
+            const bSales = parseFloat(emp.bonus_sales) || 0;
+            const bOther = parseFloat(emp.bonus_other) || 0;
+            
+            const pLate = parseFloat(emp.deduction_late) || 0;
+            const pAbsen = parseFloat(emp.deduction_absence) || 0;
+            const pKasbon = parseFloat(emp.deduction_cashadvance) || 0;
+            const pOther = parseFloat(emp.deduction_other) || 0;
+
+            const totalAllowance = tLeader + tWknd + tOver + tSosmed;
+            const totalBonus = bSales + bOther;
+            const totalDeduction = pLate + pAbsen + pKasbon + pOther;
+            const netSalary = (basic + totalAllowance + totalBonus) - totalDeduction;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td><img src="${photoUrl}" class="avatar-cell" alt="Foto"></td>
+                    <td><strong>[${emp.employee_id}]</strong> ${emp.name}</td>
+                    <td><span class="badge" style="background:#e31b23;">${emp.store_name || 'Management SMB'}</span></td>
+                    <td>Rp ${basic.toLocaleString('id-ID')}</td>
+                    <td>Rp ${totalAllowance.toLocaleString('id-ID')}</td>
+                    <td>Rp ${totalBonus.toLocaleString('id-ID')}</td>
+                    <td>Rp ${totalDeduction.toLocaleString('id-ID')}</td>
+                    <td><strong style="color: #27ae60;">Rp ${netSalary.toLocaleString('id-ID')}</strong></td>
+                    <td>
+                        <button onclick="openEditEmployeeModal(${emp.id})" class="btn btn-edit">Edit Gaji</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function filterSalaryTable() {
+        const keyword = document.getElementById('searchSalaryInput').value.toLowerCase();
+        const filtered = allEmployees.filter(emp => {
+            return emp.name.toLowerCase().includes(keyword) || emp.employee_id.toLowerCase().includes(keyword);
+        });
+        renderSalaryTable(filtered);
+    }
+
+    function resetSalarySearch() {
+        document.getElementById('searchSalaryInput').value = '';
+        renderSalaryTable(allEmployees);
+    }
+
+    function renderAttendanceTable(data) {
+        const tbody = document.getElementById('attendanceTableBody');
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Belum ada data absensi.</td></tr>`;
+            return;
+        }
+        data.forEach(row => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>[${row.employee_id}]</strong> ${row.employee_name}<br><small style="color:#666;">${row.job_position}</small></td>
+                    <td>${row.store_name}</td>
+                    <td>${row.shift_name}</td>
+                    <td>${row.date}</td>
+                    <td>${row.clock_in || '-'}</td>
+                    <td>${row.clock_out || '-'}</td>
+                    <td>${row.selfie ? `<img src="${row.selfie}" width="35" style="border-radius:4px; border:1px solid #ddd;" />` : '-'}</td>
+                </tr>
+            `;
+        });
+    }
+
+    function filterAttendance() {
+        const storeName = document.getElementById('filterStore').value;
+        const dateVal = document.getElementById('filterDate').value;
+        let filtered = allAttendance;
+        if (storeName) filtered = filtered.filter(item => item.store_name === storeName);
+        if (dateVal) filtered = filtered.filter(item => item.date === dateVal);
+        renderAttendanceTable(filtered);
+    }
+
+    function resetAttendanceFilter() {
+        document.getElementById('filterStore').value = '';
+        document.getElementById('filterDate').value = '';
+        renderAttendanceTable(allAttendance);
+    }
+
+    function previewPhotoUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('modalPhoto').value = e.target.result;
+            const preview = document.getElementById('photoPreview');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function exportEmployeesCSV() {
+        let validEmployees = allEmployees.filter(emp => emp.employee_id !== 'admin');
+        validEmployees.sort((a, b) => (a.employee_id || '').localeCompare(b.employee_id || '', undefined, { numeric: true }));
+
+        if (validEmployees.length === 0) {
+            alert('Tidak ada data karyawan untuk di-export.');
+            return;
+        }
+
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "ID Karyawan;Nama;Jabatan;Cabang Toko;Bank;No Rekening;Tanggal Join\r\n";
+
+        validEmployees.forEach(emp => {
+            const row = [
+                `"${emp.employee_id || ''}"`,
+                `"${emp.name || ''}"`,
+                `"${emp.job_position || ''}"`,
+                `"${emp.store_name || ''}"`,
+                `"${emp.bank || ''}"`,
+                `"${emp.no_rekening || ''}"`,
+                `"${emp.join_date || ''}"`
+            ];
+            csvContent += row.join(";") + "\r\n";
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "data_karyawan_mixue.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    async function importEmployeesCSV(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const text = e.target.result;
+            const lines = text.split(/\r\n|\n/);
+            
+            let successCount = 0;
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const cols = line.split(';').map(val => val.replace(/^"|"$/g, '').trim());
+                if (cols.length >= 7) {
+                    const [employee_id, name, job_position, store_name, bank, no_rekening, join_date] = cols;
+                    const matchedStore = allStores.find(s => s.store_name.toLowerCase() === store_name.toLowerCase());
+                    const store_id = matchedStore ? matchedStore.id : (allStores[0] ? allStores[0].id : 1);
+                    const organization = matchedStore ? matchedStore.store_name : 'MANAGEMENT';
+
+                    const salary_data = {
+                        basic_salary: 0,
+                        allowance_leader: 0, allowance_weekend: 0, allowance_overtime: 0, allowance_sosmed: 0,
+                        bonus_sales: 0, bonus_other: 0,
+                        deduction_late: 0, deduction_absence: 0, deduction_cashadvance: 0, deduction_other: 0
+                    };
+
+                    try {
+                        const res = await fetch('/api/employees', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ employee_id, name, job_position, organization, bank, no_rekening, join_date, store_id, salary_data })
+                        });
+                        const result = await res.json();
+                        if (result.success) successCount++;
+                    } catch (err) {
+                        console.error("Gagal import baris:", employee_id);
+                    }
+                }
+            }
+
+            alert(`Import selesai! Berhasil memperbarui ${successCount} data karyawan.`);
+            event.target.value = '';
+            await loadEmployeeData();
+            await loadAttendanceData();
+        };
+        reader.readAsText(file);
+    }
+
+    function openAddEmployeeModal() {
+        document.getElementById('modalTitle').textContent = 'Tambah Karyawan Baru & Komponen Gaji';
+        document.getElementById('editEmployeeId').value = '';
+        document.getElementById('modalEmpId').value = '';
+        document.getElementById('modalName').value = '';
+        document.getElementById('modalPosition').value = '';
+        document.getElementById('modalBank').value = '';
+        document.getElementById('modalRekening').value = '';
+        document.getElementById('modalPhoto').value = '';
+        document.getElementById('modalPhotoFile').value = '';
+        document.getElementById('photoPreview').style.display = 'none';
+        document.getElementById('modalJoinDate').value = new Date().toISOString().split('T')[0];
+        
+        ['salBasic','salTunjLeader','salTunjWeekend','salTunjLembur','salTunjSosmed','salBonusSetor','salBonusLain','salPotLate','salPotAbsen','salPotKasbon','salPotLain'].forEach(id => {
+            document.getElementById(id).value = 0;
+        });
+
+        document.getElementById('employeeModal').style.display = 'flex';
+    }
+
+    function openEditEmployeeModal(id) {
+        const emp = allEmployees.find(e => e.id === id);
+        if (!emp) return;
+        document.getElementById('modalTitle').textContent = 'Edit Karyawan & Komponen Gaji';
+        document.getElementById('editEmployeeId').value = emp.id;
+        document.getElementById('modalEmpId').value = emp.employee_id;
+        document.getElementById('modalName').value = emp.name;
+        document.getElementById('modalPosition').value = emp.job_position;
+        document.getElementById('modalStoreSelect').value = emp.store_id;
+        document.getElementById('modalBank').value = emp.bank;
+        document.getElementById('modalRekening').value = emp.no_rekening;
+        document.getElementById('modalPhoto').value = emp.photo || '';
+        document.getElementById('modalJoinDate').value = emp.join_date || '';
+
+        const preview = document.getElementById('photoPreview');
+        if (emp.photo) {
+            preview.src = emp.photo;
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+
+        document.getElementById('salBasic').value = emp.basic_salary || 0;
+        document.getElementById('salTunjLeader').value = emp.allowance_leader || 0;
+        document.getElementById('salTunjWeekend').value = emp.allowance_weekend || 0;
+        document.getElementById('salTunjLembur').value = emp.allowance_overtime || 0;
+        document.getElementById('salTunjSosmed').value = emp.allowance_sosmed || 0;
+        document.getElementById('salBonusSetor').value = emp.bonus_sales || 0;
+        document.getElementById('salBonusLain').value = emp.bonus_other || 0;
+        document.getElementById('salPotLate').value = emp.deduction_late || 0;
+        document.getElementById('salPotAbsen').value = emp.deduction_absence || 0;
+        document.getElementById('salPotKasbon').value = emp.deduction_cashadvance || 0;
+        document.getElementById('salPotLain').value = emp.deduction_other || 0;
+
+        document.getElementById('employeeModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('employeeModal').style.display = 'none';
+    }
+
+    async function saveEmployeeData() {
+        const id = document.getElementById('editEmployeeId').value;
+        const employee_id = document.getElementById('modalEmpId').value.trim();
+        const name = document.getElementById('modalName').value.trim();
+        const job_position = document.getElementById('modalPosition').value.trim();
+        const store_id = document.getElementById('modalStoreSelect').value;
+        const bank = document.getElementById('modalBank').value.trim();
+        const no_rekening = document.getElementById('modalRekening').value.trim();
+        const photo = document.getElementById('modalPhoto').value.trim();
+        const join_date = document.getElementById('modalJoinDate').value;
+        const selectedStore = allStores.find(s => s.id == store_id);
+        const organization = selectedStore ? selectedStore.store_name : 'MANAGEMENT';
+
+        const salary_data = {
+            basic_salary: parseFloat(document.getElementById('salBasic').value) || 0,
+            allowance_leader: parseFloat(document.getElementById('salTunjLeader').value) || 0,
+            allowance_weekend: parseFloat(document.getElementById('salTunjWeekend').value) || 0,
+            allowance_overtime: parseFloat(document.getElementById('salTunjLembur').value) || 0,
+            allowance_sosmed: parseFloat(document.getElementById('salTunjSosmed').value) || 0,
+            bonus_sales: parseFloat(document.getElementById('salBonusSetor').value) || 0,
+            bonus_other: parseFloat(document.getElementById('salBonusLain').value) || 0,
+            deduction_late: parseFloat(document.getElementById('salPotLate').value) || 0,
+            deduction_absence: parseFloat(document.getElementById('salPotAbsen').value) || 0,
+            deduction_cashadvance: parseFloat(document.getElementById('salPotKasbon').value) || 0,
+            deduction_other: parseFloat(document.getElementById('salPotLain').value) || 0
+        };
+
+        if (!employee_id || !name) {
+            alert('ID Unik dan Nama Karyawan wajib diisi!');
+            return;
+        }
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/employees/${id}` : '/api/employees';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ employee_id, name, job_position, organization, bank, no_rekening, photo, join_date, store_id, salary_data })
+        });
+        const result = await res.json();
+        alert(result.message);
+        if (result.success) {
+            closeModal();
+            await loadEmployeeData();
+            await loadAttendanceData();
+        }
+    }
+
+    async function deleteEmployee(id) {
+        if (!confirm('Yakin ingin menghapus data karyawan dan riwayat gajinya?')) return;
+        const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
+        const result = await res.json();
+        alert(result.message);
+        if (result.success) {
+            await loadEmployeeData();
+            await loadAttendanceData();
+        }
+    }
+
+    loadInitialData();
+</script>
+
+</body>
+</html>
