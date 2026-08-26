@@ -94,7 +94,7 @@ function initDatabase() {
 
 // ==================== ENDPOINT API ====================
 
-// 1. Endpoint Login (Admin, HRD, Karyawan)
+// 1. Endpoint Login (Admin, Karyawan)
 app.post('/api/login', (req, res) => {
     const { employee_id, password } = req.body;
 
@@ -105,15 +105,6 @@ app.post('/api/login', (req, res) => {
             employee: { id: 0, employee_id: 'admin', name: 'Administrator Pusat', job_position: 'ADMIN' } 
         });
     }
-
-    // Login Khusus HRD
-    if (employee_id.toUpperCase() === 'HRD' && password === 'HRD789') {
-        return res.json({ 
-            success: true, 
-            employee: { id: -1, employee_id: 'HRD', name: 'Staff HRD', job_position: 'HRD MANAGER' } 
-        });
-    }
-
     // Login Karyawan
     db.get("SELECT * FROM employees WHERE employee_id = ?", [employee_id], (err, row) => {
         if (err) {
