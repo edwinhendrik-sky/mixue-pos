@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json({ limit: '10mb' })); 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Konfigurasi Database Lokal di dalam Folder Project (Aman, Tanpa Error Permission / Disk)
+// Konfigurasi Database Lokal di dalam Folder Project
 const dbPath = path.resolve(__dirname, 'database.sqlite');
 
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -22,9 +22,10 @@ const db = new sqlite3.Database(dbPath, (err) => {
     }
 });
 
-// Inisialisasi Tabel Database & Seed Data Default jika Belum Ada
+// Inisialisasi Tabel & Seeding 36 Data Karyawan Otomatis
 function initDatabase() {
     db.serialize(() => {
+        // Tabel Toko / Cabang
         db.run(`CREATE TABLE IF NOT EXISTS stores (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             store_name TEXT NOT NULL,
@@ -33,6 +34,7 @@ function initDatabase() {
             radius_meter INTEGER DEFAULT 50000
         )`);
 
+        // Tabel Shift Kerja
         db.run(`CREATE TABLE IF NOT EXISTS shifts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             store_id INTEGER,
@@ -41,6 +43,7 @@ function initDatabase() {
             FOREIGN KEY(store_id) REFERENCES stores(id)
         )`);
 
+        // Tabel Karyawan
         db.run(`CREATE TABLE IF NOT EXISTS employees (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id TEXT UNIQUE NOT NULL,
@@ -55,6 +58,7 @@ function initDatabase() {
             FOREIGN KEY(store_id) REFERENCES stores(id)
         )`);
 
+        // Tabel Komponen Gaji / Payroll
         db.run(`CREATE TABLE IF NOT EXISTS employee_salaries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id INTEGER,
@@ -72,6 +76,7 @@ function initDatabase() {
             FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
         )`);
 
+        // Tabel Absensi
         db.run(`CREATE TABLE IF NOT EXISTS attendance (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id INTEGER,
@@ -85,7 +90,7 @@ function initDatabase() {
             FOREIGN KEY(employee_id) REFERENCES employees(id)
         )`);
 
-        // Seed data toko dan karyawan otomatis jika tabel stores masih kosong
+        // Seeding Data Toko & 36 Karyawan jika tabel masih kosong
         db.get(`SELECT COUNT(*) as count FROM stores`, (err, row) => {
             if (!err && row.count === 0) {
                 const storesData = [
@@ -109,45 +114,69 @@ function initDatabase() {
                     });
                 });
 
+                // Inisialisasi Admin Pusat
+                db.run(`INSERT INTO employees (employee_id, name, job_position, organization, bank, no_rekening, join_date, store_id) VALUES ('admin', 'Administrator Pusat', 'ADMIN', 'MANAGEMENT SMB', '-', '-', '2024-01-01', 1)`, function(err) {
+                    if (!err && this.lastID) {
+                        db.run(`INSERT INTO employee_salaries (employee_id) VALUES (?)`, [this.lastID]);
+                    }
+                });
+
+                // 36 Data Karyawan Lengkap sesuai Database CSV Terlampir
                 const employeesList = [
-                    ['ASEP HAMIDILLAH', 'AREA MANAGER', 'MANAGEMENT SMB', 'BCA', '4181044351', '1700000', '2024-01-10', 'MANAGEMENT SMB'],
-                    ['DIMAS GUNAWAN', 'AREA MANAGER', 'Management SMB', 'Mandiri', '1300023002416', '1800000', '2024-01-10', 'MANAGEMENT SMB'],
-                    ['ROBI IKBAL JAELANI', 'SHIFT LEADER', 'MIXUE MAJALAYA', 'BCA', '3761565581', '1650000', '2024-03-01', 'MIXUE MAJALAYA'],
-                    ['FEBRI ANDRIYANI', 'OUTLET CREW', 'MIXUE MAJALAYA', 'Seabank Indonesia', '901384598431', '1650000', '2024-04-12', 'MIXUE MAJALAYA'],
-                    ['ACENG NUROHMAT', 'SHIFT LEADER', 'MIXUE CIMALAKA', 'Mandiri', '1310021865292', '1550000', '2024-02-15', 'MIXUE CIMALAKA'],
-                    ['Dinni Aryanti', 'OUTLET CREW', 'MIXUE CIMALAKA', 'Mandiri', '1310021697786', '1400000', '2024-03-10', 'MIXUE CIMALAKA']
+                    ['CIM-001', 'DINNI ARYANTI', 'OUTLET CREW', 'MIXUE CIMALAKA', 'Mandiri', '1310021697786', '2024-11-15'],
+                    ['CIM-002', 'MUHAMMAD ANDRA SEPTIAN', 'PROBATION', 'MIXUE CIMALAKA', 'Seabank Indonesia', '901994124626', '2026-05-18'],
+                    ['CIM-003', 'DANDI LESMANA', 'PROBATION', 'MIXUE CIMALAKA', 'BNI', '1979024997', '2026-07-28'],
+                    ['CIM-004', 'NANDA FERDIANSYAH', 'PROBATION', 'MIXUE CIMALAKA', 'BRI', '443901015243501', '2026-08-07'],
+                    ['JTW-001', 'PUJA ESTI PANGESTU', 'OUTLET CREW', 'MIXUE JATIWANGI', 'Seabank Indonesia', '901458868785', '2024-05-26'],
+                    ['JTW-002', 'RAMANDA PUTRA WALUYO', 'OUTLET CREW', 'MIXUE JATIWANGI', 'BRI', '430501009909500', '2025-03-06'],
+                    ['JTW-003', 'NAUFAL SHIDIQ', 'OUTLET CREW', 'MIXUE JATIWANGI', 'Mandiri', '1340029442430', '2025-01-25'],
+                    ['JTW-004', 'TEGAR NUGRAHA', 'PROBATION', 'MIXUE JATIWANGI', 'BRI', '130301006563534', '2026-06-03'],
+                    ['JTW-005', 'DAVID CANDRA AL-JABBAR', 'PROBATION', 'MIXUE JATIWANGI', 'JAGO', '10690831102', '2026-08-11'],
+                    ['KDP-001', 'REQY AGUNG GUMELAR', 'SHIFT LEADER', 'MIXUE KADIPATEN', 'BCA', '8180388371', '2023-11-19'],
+                    ['KDP-002', 'DEA MUTIARANI', 'OUTLET CREW', 'MIXUE KADIPATEN', 'Seabank Indonesia', '901827647735', '2025-07-04'],
+                    ['KDP-003', 'MUHAMAD FAJAR DWI FIRMANSYAH', 'OUTLET CREW', 'MIXUE KADIPATEN', 'BCA', '7381088484', '2026-03-17'],
+                    ['KDP-004', 'ELJA FIRMANSYAH', 'PROBATION', 'MIXUE KADIPATEN', 'Seabank Indonesia', '901788572741', '2026-05-18'],
+                    ['KDP-005', 'RHEINALDY MAHARDHIKA PERMANA', 'OUTLET CREW', 'MIXUE KADIPATEN', 'BNI', '2082463913', '2026-06-28'],
+                    ['MAJ-001', 'ROBI IKBAL JAELANI', 'SHIFT LEADER', 'MIXUE MAJALAYA', 'BCA', '3761565581', '2023-01-09'],
+                    ['MAJ-002', 'FEBRI ANDRIYANI', 'OUTLET CREW', 'MIXUE MAJALAYA', 'Seabank Indonesia', '901384598431', '2024-07-07'],
+                    ['MAJ-003', 'HARI MAHAR DIKA AGUSTIANSYAH', 'OUTLET CREW', 'MIXUE MAJALAYA', 'Seabank Indonesia', '901537710240', '2025-03-14'],
+                    ['MAJ-004', 'IRVAN RAVLI', 'OUTLET CREW', 'MIXUE MAJALAYA', 'BCA', '7840314485', '2026-03-10'],
+                    ['MAJ-005', 'ANDHIKA SAPUTRA', 'OUTLET CREW', 'MIXUE MAJALAYA', 'Seabank Indonesia', '9014411398435', '2026-04-26'],
+                    ['MAJ-006', 'YUNITA SAINA PUTRI', 'PROBATION', 'MIXUE MAJALAYA', 'Seabank Indonesia', '901512874102', '2026-08-11'],
+                    ['MLB-001', 'ANDI AHMAD', 'SHIFT LEADER PROBATION', 'MIXUE MALANGBONG', 'Mandiri', '1310021001948', '2023-11-13'],
+                    ['MLB-002', 'MUTIA DWI ANDANI', 'OUTLET CREW', 'MIXUE MALANGBONG', 'BNI', '1987004062', '2026-04-13'],
+                    ['MLB-003', 'EGI JUWANDI', 'PROBATION', 'MIXUE MALANGBONG', 'Mandiri', '1310023897830', '2026-05-07'],
+                    ['MLB-004', 'JUJUN AZZUHRI', 'PROBATION', 'MIXUE MALANGBONG', 'Seabank Indonesia', '901437485150', '2026-06-03'],
+                    ['NAN-001', 'SITI LUCYTA', 'SHIFT LEADER PROBATION', 'MIXUE NANJUNG', 'Mandiri', '1320025875346', '2023-11-22'],
+                    ['NAN-002', 'ANDIKA', 'OUTLET CREW', 'MIXUE NANJUNG', 'BCA', '7495056210', '2024-08-06'],
+                    ['NAN-003', 'CHASA WARGANA', 'OUTLET CREW', 'MIXUE NANJUNG', 'Seabank Indonesia', '901943331407', '2024-08-30'],
+                    ['NAN-004', 'RAKA HADITYA', 'PROBATION', 'MIXUE NANJUNG', 'Seabank Indonesia', '901051758489', '2026-05-31'],
+                    ['NAN-005', 'BILAL ZAINUL ARIFIN', 'PROBATION', 'MIXUE NANJUNG', 'Mandiri', '1300028471025', '2026-08-11'],
+                    ['SMB-001', 'ASEP HAMIDILLAH', 'AREA MANAGER', 'MANAGEMENT SMB', 'BCA', '4181044351', '2022-08-28'],
+                    ['SMB-002', 'FAISHAL FADHIL', 'SHIFT LEADER', 'MANAGEMENT SMB', 'BRI', '429701011754508', '2022-10-02'],
+                    ['TSD-001', 'ANGGA RAHAYU', 'SHIFT LEADER PROBATION', 'MIXUE TANJUNG SARI', 'Seabank Indonesia', '901005306004', '2025-09-07'],
+                    ['TSD-002', 'RENDI APRILYANSAH', 'OUTLET CREW', 'MIXUE TANJUNG SARI', 'Seabank Indonesia', '901009832910', '2024-05-26'],
+                    ['TSD-003', 'NOFIA RAMADANI', 'OUTLET CREW', 'MIXUE TANJUNG SARI', 'BCA', '7405235765', '2025-08-11'],
+                    ['TSD-004', 'ANDRA NURANANDA', 'OUTLET CREW', 'MIXUE TANJUNG SARI', 'BCA', '6395491036', '2023-12-31'],
+                    ['TSD-005', 'MUHAMAD REZA SETIAWAN', 'OUTLET CREW', 'MIXUE TANJUNG SARI', 'Seabank Indonesia', '901870456845', '2026-02-14']
                 ];
 
                 setTimeout(() => {
-                    const storeCounters = {};
                     employeesList.forEach((emp) => {
-                        const orgName = emp[7];
-                        const joinDate = emp[6];
-                        const basicSalaryNum = parseFloat(emp[5]) || 0;
-                        const matchedStore = storesData.find(s => s.name.toUpperCase() === orgName.toUpperCase());
-                        const storeCode = matchedStore ? matchedStore.code : 'MIX';
-                        
-                        if (!storeCounters[storeCode]) {
-                            storeCounters[storeCode] = 1;
-                        } else {
-                            storeCounters[storeCode]++;
-                        }
-
-                        const sequenceNum = String(storeCounters[storeCode]).padStart(3, '0');
-                        const uniqueEmpId = `${storeCode}-${sequenceNum}`;
-
-                        db.get(`SELECT id FROM stores WHERE store_name = ?`, [orgName], (err, storeRow) => {
-                            if (storeRow) {
-                                db.run(`INSERT OR IGNORE INTO employees (employee_id, name, job_position, organization, bank, no_rekening, join_date, store_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
-                                    [uniqueEmpId, emp[0], emp[1], emp[2], emp[3], emp[4], joinDate, storeRow.id], function(err) {
-                                        if (!err && this.lastID) {
-                                            db.run(`INSERT INTO employee_salaries (employee_id, basic_salary) VALUES (?, ?)`, [this.lastID, basicSalaryNum]);
-                                        }
-                                    });
-                            }
+                        const [employee_id, name, job_position, store_name, bank, no_rekening, join_date] = emp;
+                        db.get(`SELECT id FROM stores WHERE store_name = ?`, [store_name], (err, storeRow) => {
+                            const store_id = storeRow ? storeRow.id : 1;
+                            db.run(`INSERT OR IGNORE INTO employees (employee_id, name, job_position, organization, bank, no_rekening, join_date, store_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
+                                [employee_id, name, job_position, store_name, bank, no_rekening, join_date, store_id], function(err) {
+                                    if (!err && this.lastID) {
+                                        db.run(`INSERT INTO employee_salaries (employee_id, basic_salary) VALUES (?, 1500000)`, [this.lastID]);
+                                    }
+                                });
                         });
                     });
                 }, 500);
+
+                console.log('36 Data karyawan berhasil diinisialisasi otomatis ke database.');
             }
         });
     });
@@ -155,13 +184,11 @@ function initDatabase() {
 
 // ==================== ENDPOINT API ====================
 
-// 1. Endpoint Login (Disesuaikan agar mencocokkan ID Karyawan dan No Rekening dengan fleksibel)
 app.post('/api/login', (req, res) => {
     let { employee_id, password } = req.body;
     employee_id = employee_id ? employee_id.trim() : '';
     password = password ? password.trim() : '';
 
-    // Login Khusus Admin Pusat
     if (employee_id === 'admin' && password === 'admin123') {
         return res.json({ 
             success: true, 
@@ -169,19 +196,13 @@ app.post('/api/login', (req, res) => {
         });
     }
 
-    // Login Karyawan (Mencocokkan employee_id dan nomor rekening sebagai password)
     db.get("SELECT * FROM employees WHERE LOWER(employee_id) = LOWER(?) AND (no_rekening = ? OR ? = '1234')", [employee_id, password, password], (err, row) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: 'Database error' });
-        }
-        if (!row) {
-            return res.status(401).json({ success: false, message: 'ID Karyawan atau Password (No Rekening) salah!' });
-        }
+        if (err) return res.status(500).json({ success: false, message: 'Database error' });
+        if (!row) return res.status(401).json({ success: false, message: 'ID Karyawan atau Password (No Rekening) salah!' });
         res.json({ success: true, employee: row });
     });
 });
 
-// 2. Ambil Daftar Toko
 app.get('/api/stores', (req, res) => {
     db.all("SELECT * FROM stores", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -189,16 +210,13 @@ app.get('/api/stores', (req, res) => {
     });
 });
 
-// 3. Ambil Daftar Shift Berdasarkan Toko
 app.get('/api/shifts/:storeId', (req, res) => {
-    const storeId = req.params.storeId;
-    db.all("SELECT * FROM shifts WHERE store_id = ?", [storeId], (err, rows) => {
+    db.all("SELECT * FROM shifts WHERE store_id = ?", [req.params.storeId], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(rows);
     });
 });
 
-// 4. Ambil Daftar Karyawan Beserta Gaji
 app.get('/api/employees-with-salary', (req, res) => {
     const query = `
         SELECT e.*, s.store_name, 
@@ -223,172 +241,92 @@ app.get('/api/employees-with-salary', (req, res) => {
     });
 });
 
-// 5. Tambah / Update Karyawan & Gaji (Upsert)
 app.post('/api/employees', (req, res) => {
     const { employee_id, name, job_position, organization, bank, no_rekening, photo, join_date, store_id, salary_data } = req.body;
-
     db.get("SELECT id FROM employees WHERE employee_id = ?", [employee_id], (err, existingEmp) => {
         if (existingEmp) {
-            db.run(`
-                UPDATE employees 
-                SET name = ?, job_position = ?, organization = ?, bank = ?, no_rekening = ?, photo = COALESCE(?, photo), join_date = ?, store_id = ?
-                WHERE employee_id = ?
-            `, [name, job_position, organization, bank, no_rekening, photo, join_date, store_id, employee_id], function(updateErr) {
-                if (updateErr) return res.status(500).json({ success: false, message: updateErr.message });
-                updateSalary(existingEmp.id, salary_data, res);
-            });
+            db.run(`UPDATE employees SET name = ?, job_position = ?, organization = ?, bank = ?, no_rekening = ?, photo = COALESCE(?, photo), join_date = ?, store_id = ? WHERE employee_id = ?`,
+                [name, job_position, organization, bank, no_rekening, photo, join_date, store_id, employee_id], () => {
+                    updateSalary(existingEmp.id, salary_data, res);
+                });
         } else {
-            db.run(`
-                INSERT INTO employees (employee_id, name, job_position, organization, bank, no_rekening, photo, join_date, store_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `, [employee_id, name, job_position, organization, bank, no_rekening, photo, join_date, store_id], function(insertErr) {
-                if (insertErr) return res.status(500).json({ success: false, message: insertErr.message });
-                const newEmpId = this.lastID;
-                updateSalary(newEmpId, salary_data, res);
-            });
+            db.run(`INSERT INTO employees (employee_id, name, job_position, organization, bank, no_rekening, photo, join_date, store_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [employee_id, name, job_position, organization, bank, no_rekening, photo, join_date, store_id], function(err) {
+                    if (err) return res.status(500).json({ success: false, message: err.message });
+                    updateSalary(this.lastID, salary_data, res);
+                });
         }
     });
 });
 
 function updateSalary(empId, salaryData, res) {
-    if (!salaryData) {
-        return res.json({ success: true, message: 'Data karyawan berhasil disimpan!' });
-    }
-
+    if (!salaryData) return res.json({ success: true, message: 'Data disimpan!' });
     db.get("SELECT id FROM employee_salaries WHERE employee_id = ?", [empId], (err, row) => {
         if (row) {
-            db.run(`
-                UPDATE employee_salaries SET 
-                basic_salary = ?, allowance_leader = ?, allowance_weekend = ?, allowance_overtime = ?, allowance_sosmed = ?,
-                bonus_sales = ?, bonus_other = ?, deduction_late = ?, deduction_absence = ?, deduction_cashadvance = ?, deduction_other = ?
-                WHERE employee_id = ?
-            `, [
-                salaryData.basic_salary, salaryData.allowance_leader, salaryData.allowance_weekend, salaryData.allowance_overtime, salaryData.allowance_sosmed,
-                salaryData.bonus_sales, salaryData.bonus_other, salaryData.deduction_late, salaryData.deduction_absence, salaryData.deduction_cashadvance, salaryData.deduction_other,
-                empId
-            ], (err) => {
-                if (err) return res.status(500).json({ success: false, message: 'Gagal update gaji.' });
-                res.json({ success: true, message: 'Data karyawan & komponen gaji berhasil diperbarui!' });
-            });
+            db.run(`UPDATE employee_salaries SET basic_salary = ?, allowance_leader = ?, allowance_weekend = ?, allowance_overtime = ?, allowance_sosmed = ?, bonus_sales = ?, bonus_other = ?, deduction_late = ?, deduction_absence = ?, deduction_cashadvance = ?, deduction_other = ? WHERE employee_id = ?`,
+                [salaryData.basic_salary, salaryData.allowance_leader, salaryData.allowance_weekend, salaryData.allowance_overtime, salaryData.allowance_sosmed, salaryData.bonus_sales, salaryData.bonus_other, salaryData.deduction_late, salaryData.deduction_absence, salaryData.deduction_cashadvance, salaryData.deduction_other, empId],
+                () => res.json({ success: true, message: 'Gaji diperbarui!' }));
         } else {
-            db.run(`
-                INSERT INTO employee_salaries (
-                    employee_id, basic_salary, allowance_leader, allowance_weekend, allowance_overtime, allowance_sosmed,
-                    bonus_sales, bonus_other, deduction_late, deduction_absence, deduction_cashadvance, deduction_other
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `, [
-                empId, salaryData.basic_salary, salaryData.allowance_leader, salaryData.allowance_weekend, salaryData.allowance_overtime, salaryData.allowance_sosmed,
-                salaryData.bonus_sales, salaryData.bonus_other, salaryData.deduction_late, salaryData.deduction_absence, salaryData.deduction_cashadvance, salaryData.deduction_other
-            ], (err) => {
-                if (err) return res.status(500).json({ success: false, message: 'Gagal insert gaji.' });
-                res.json({ success: true, message: 'Data karyawan & komponen gaji berhasil ditambahkan!' });
-            });
+            db.run(`INSERT INTO employee_salaries (employee_id, basic_salary, allowance_leader, allowance_weekend, allowance_overtime, allowance_sosmed, bonus_sales, bonus_other, deduction_late, deduction_absence, deduction_cashadvance, deduction_other) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [empId, salaryData.basic_salary, salaryData.allowance_leader, salaryData.allowance_weekend, salaryData.allowance_overtime, salaryData.allowance_sosmed, salaryData.bonus_sales, salaryData.bonus_other, salaryData.deduction_late, salaryData.deduction_absence, salaryData.deduction_cashadvance, salaryData.deduction_other],
+                () => res.json({ success: true, message: 'Gaji ditambahkan!' }));
         }
     });
 }
 
-// 6. Update Profil / Data Karyawan via ID Utama
 app.put('/api/employees/:id', (req, res) => {
     const id = req.params.id;
     const { employee_id, name, job_position, organization, bank, no_rekening, photo, join_date, store_id, salary_data } = req.body;
-
-    db.run(`
-        UPDATE employees 
-        SET employee_id = ?, name = ?, job_position = ?, organization = ?, bank = ?, no_rekening = ?, photo = COALESCE(?, photo), join_date = ?, store_id = ?
-        WHERE id = ?
-    `, [employee_id, name, job_position, organization, bank, no_rekening, photo, join_date, store_id, id], function(err) {
-        if (err) return res.status(500).json({ success: false, message: err.message });
-        
-        if (salary_data) {
-            updateSalary(id, salary_data, res);
-        } else {
-            res.json({ success: true, message: 'Data profil berhasil diperbarui!' });
-        }
-    });
+    db.run(`UPDATE employees SET employee_id = ?, name = ?, job_position = ?, organization = ?, bank = ?, no_rekening = ?, photo = COALESCE(?, photo), join_date = ?, store_id = ? WHERE id = ?`,
+        [employee_id, name, job_position, organization, bank, no_rekening, photo, join_date, store_id, id], () => {
+            if (salary_data) updateSalary(id, salary_data, res);
+            else res.json({ success: true, message: 'Profil diperbarui!' });
+        });
 });
 
-// 7. Hapus Karyawan
 app.delete('/api/employees/:id', (req, res) => {
-    const id = req.params.id;
-    db.run("DELETE FROM employee_salaries WHERE employee_id = ?", [id], () => {
-        db.run("DELETE FROM employees WHERE id = ?", [id], function(err) {
-            if (err) return res.status(500).json({ success: false, message: err.message });
-            res.json({ success: true, message: 'Data karyawan berhasil dihapus.' });
+    db.run("DELETE FROM employee_salaries WHERE employee_id = ?", [req.params.id], () => {
+        db.run("DELETE FROM employees WHERE id = ?", [req.params.id], () => {
+            res.json({ success: true, message: 'Karyawan dihapus.' });
         });
     });
 });
 
-// 8. Submit Absensi (Anti Double Submit / Hanya Menyimpan Clock In & Clock Out Pertama)
 app.post('/api/attendance', (req, res) => {
     const { employee_id, shift_id, store_id, type, selfie } = req.body;
-    
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
     const nowTime = new Date().toLocaleTimeString('it-IT', { timeZone: 'Asia/Jakarta' });
 
     db.get("SELECT name FROM employees WHERE id = ?", [employee_id], (err, empRow) => {
-        if (err || !empRow) {
-            return res.status(400).json({ success: false, message: 'Karyawan tidak valid!' });
-        }
+        if (err || !empRow) return res.status(400).json({ success: false, message: 'Karyawan tidak valid!' });
 
         db.get("SELECT store_name FROM stores WHERE id = ?", [store_id], (err, storeRow) => {
             const storeName = storeRow ? storeRow.store_name : '-';
-            
             db.get("SELECT shift_name, time_range FROM shifts WHERE id = ?", [shift_id], (err, shiftRow) => {
                 const shiftName = shiftRow ? `${shiftRow.shift_name} (${shiftRow.time_range})` : '-';
 
                 db.get("SELECT * FROM attendance WHERE employee_id = ? AND date = ?", [employee_id, today], (err, existing) => {
-                    if (err) return res.status(500).json({ success: false, message: 'Database error.' });
-
                     if (type === 'in') {
                         if (existing && existing.clock_in) {
-                            return res.json({ 
-                                success: false, 
-                                message: `⚠️ Gagal! Anda sudah melakukan Clock In hari ini pada pukul ${existing.clock_in}. Absen masuk kedua tidak disimpan.` 
-                            });
+                            return res.json({ success: false, message: `⚠️ Gagal! Anda sudah melakukan Clock In hari ini pada pukul ${existing.clock_in}.` });
                         }
-
                         if (existing) {
-                            db.run(`
-                                UPDATE attendance 
-                                SET clock_in = ?, store_name = ?, shift_name = ?, selfie = ? 
-                                WHERE id = ?
-                            `, [nowTime, storeName, shiftName, selfie, existing.id], function(updateErr) {
-                                if (updateErr) return res.status(500).json({ success: false, message: 'Gagal menyimpan Clock In.' });
-                                res.json({ success: true, message: `✅ Berhasil Clock In pada pukul ${nowTime}. Data tersimpan.` });
-                            });
+                            db.run(`UPDATE attendance SET clock_in = ?, store_name = ?, shift_name = ?, selfie = ? WHERE id = ?`, [nowTime, storeName, shiftName, selfie, existing.id],
+                                () => res.json({ success: true, message: `✅ Berhasil Clock In pada pukul ${nowTime}.` }));
                         } else {
-                            db.run(`
-                                INSERT INTO attendance (employee_id, employee_name, store_name, shift_name, date, clock_in, selfie)
-                                VALUES (?, ?, ?, ?, ?, ?, ?)
-                            `, [employee_id, empRow.name, storeName, shiftName, today, nowTime, selfie], function(insertErr) {
-                                if (insertErr) return res.status(500).json({ success: false, message: 'Gagal menyimpan Clock In.' });
-                                res.json({ success: true, message: `✅ Berhasil Clock In pada pukul ${nowTime}. Data tersimpan.` });
-                            });
+                            db.run(`INSERT INTO attendance (employee_id, employee_name, store_name, shift_name, date, clock_in, selfie) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                                [employee_id, empRow.name, storeName, shiftName, today, nowTime, selfie],
+                                () => res.json({ success: true, message: `✅ Berhasil Clock In pada pukul ${nowTime}.` }));
                         }
-
                     } else if (type === 'out') {
                         if (!existing || !existing.clock_in) {
-                            return res.json({ 
-                                success: false, 
-                                message: '⚠️ Gagal! Anda belum melakukan Clock In (Masuk) hari ini.' 
-                            });
+                            return res.json({ success: false, message: '⚠️ Gagal! Anda belum melakukan Clock In hari ini.' });
                         }
-
                         if (existing.clock_out) {
-                            return res.json({ 
-                                success: false, 
-                                message: `⚠️ Gagal! Anda sudah melakukan Clock Out hari ini pada pukul ${existing.clock_out}. Absen pulang kedua tidak disimpan.` 
-                            });
+                            return res.json({ success: false, message: `⚠️ Gagal! Anda sudah melakukan Clock Out hari ini pada pukul ${existing.clock_out}.` });
                         }
-
-                        db.run(`
-                            UPDATE attendance 
-                            SET clock_out = ? 
-                            WHERE id = ?
-                        `, [nowTime, existing.id], function(updateErr) {
-                            if (updateErr) return res.status(500).json({ success: false, message: 'Gagal menyimpan Clock Out.' });
-                            res.json({ success: true, message: `✅ Berhasil Clock Out pada pukul ${nowTime}.` });
-                        });
+                        db.run(`UPDATE attendance SET clock_out = ? WHERE id = ?`, [nowTime, existing.id],
+                            () => res.json({ success: true, message: `✅ Berhasil Clock Out pada pukul ${nowTime}.` }));
                     }
                 });
             });
@@ -396,7 +334,6 @@ app.post('/api/attendance', (req, res) => {
     });
 });
 
-// 9. Ambil Rekap Absensi
 app.get('/api/attendance', (req, res) => {
     db.all("SELECT * FROM attendance ORDER BY id DESC", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -404,7 +341,6 @@ app.get('/api/attendance', (req, res) => {
     });
 });
 
-// Menjalankan Server
 app.listen(PORT, () => {
     console.log(`Server Mixue Management berjalan di port ${PORT}`);
 });
