@@ -178,7 +178,7 @@
         
         <div class="profile-avatar-container">
             <img id="profileModalAvatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="profile-avatar" alt="Foto Profil"><br>
-            <label class="btn" style="display:inline-block; width:auto; padding:6px 12px; font-size:11px; margin-top:8px; cursor:pointer; background:#e31b23; color:white; border-radius:4px;">
+            <label class="btn" style="display:inline-block; width:auto; padding:6px 12px; font-size:11px; margin-top:8px; cursor:pointer;">
                 📷 Ganti Foto Profil
                 <input type="file" id="profilePhotoInput" accept="image/*" style="display:none;" onchange="uploadProfilePhoto(event)">
             </label>
@@ -306,6 +306,7 @@
             const base64Image = e.target.result;
             document.getElementById('profileModalAvatar').src = base64Image;
 
+            // Kirim update foto ke server
             try {
                 const res = await fetch(`/api/employees/${loggedInEmployee.id}`, {
                     method: 'PUT',
