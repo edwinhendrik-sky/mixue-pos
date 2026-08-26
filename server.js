@@ -2,18 +2,25 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const bodyParser = require('body-parser');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(bodyParser.json({ limit: '10mb' })); // Mendukung upload foto base64 yang besar
+app.use(bodyParser.json({ limit: '10mb' })); 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Konfigurasi Database (Mendukung Render Disk /data jika di cloud)
-const dbPath = process.env.RENDER 
-    ? '/data/database.sqlite' 
-    : path.resolve(__dirname, 'database.sqlite');
+// Konfigurasi Database dengan Pembuatan Direktori Otomatis untuk Render Disk (/data)
+let dbPath = path.resolve(__dirname, 'database.sqlite');
+
+if (process.env.RENDER) {
+    const dir = '/data';
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+    dbPath = path.join(dir, 'database.sqlite');
+}
 
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
@@ -96,7 +103,7 @@ function initDatabase() {
 
 // ==================== ENDPOINT API ====================
 
-// 1. Endpoint Login
+// 1. Endpoint Login (Admin, HRD, Karyawan)
 app.post('/api/login', (req, res) => {
     const { employee_id, password } = req.body;
 
@@ -176,25 +183,20 @@ app.post('/api/employees', (req, res) => {
 
     db.get("SELECT id FROM employees WHERE employee_id = ?", [employee_id], (err, existingEmp) => {
         if (existingEmp) {
-            // Update Data Karyawan
             db.run(`
                 UPDATE employees 
                 SET name = ?, job_position = ?, organization = ?, bank = ?, no_rekening = ?, photo = COALESCE(?, photo), join_date = ?, store_id = ?
                 WHERE employee_id = ?
             `, [name, job_position, organization, bank, no_rekening, photo, join_date, store_id, employee_id], function(updateErr) {
                 if (updateErr) return res.status(500).json({ success: false, message: updateErr.message });
-                
-                // Update atau Insert Gaji
                 updateSalary(existingEmp.id, salary_data, res);
             });
         } else {
-            // Insert Karyawan Baru
             db.run(`
                 INSERT INTO employees (employee_id, name, job_position, organization, bank, no_rekening, photo, join_date, store_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [employee_id, name, job_position, organization, bank, no_rekening, photo, join_date, store_id], function(insertErr) {
                 if (insertErr) return res.status(500).json({ success: false, message: insertErr.message });
-                
                 const newEmpId = this.lastID;
                 updateSalary(newEmpId, salary_data, res);
             });
@@ -202,7 +204,6 @@ app.post('/api/employees', (req, res) => {
     });
 });
 
-// Helper untuk simpan/update tabel gaji
 function updateSalary(empId, salaryData, res) {
     if (!salaryData) {
         return res.json({ success: true, message: 'Data karyawan berhasil disimpan!' });
@@ -271,7 +272,7 @@ app.delete('/api/employees/:id', (req, res) => {
     });
 });
 
-// 8. Submit Absensi (Clock In & Clock Out) - Dilengkapi Validasi Anti 2x Absen
+// 8. Submit Absensi (Anti Double Submit / Hanya Menyimpan Clock In & Clock Out Pertama)
 app.post('/api/attendance', (req, res) => {
     const { employee_id, shift_id, store_id, type, selfie } = req.body;
     
@@ -289,12 +290,11 @@ app.post('/api/attendance', (req, res) => {
             db.get("SELECT shift_name, time_range FROM shifts WHERE id = ?", [shift_id], (err, shiftRow) => {
                 const shiftName = shiftRow ? `${shiftRow.shift_name} (${shiftRow.time_range})` : '-';
 
-                // Cek apakah sudah ada record absensi di hari ini
                 db.get("SELECT * FROM attendance WHERE employee_id = ? AND date = ?", [employee_id, today], (err, existing) => {
                     if (err) return res.status(500).json({ success: false, message: 'Database error.' });
 
                     if (type === 'in') {
-                        // VALIDASI: Tolak jika sudah pernah Clock In hari ini
+                        // Tolak jika sudah pernah Clock In hari ini
                         if (existing && existing.clock_in) {
                             return res.json({ 
                                 success: false, 
@@ -322,7 +322,7 @@ app.post('/api/attendance', (req, res) => {
                         }
 
                     } else if (type === 'out') {
-                        // VALIDASI: Tolak jika belum Clock In
+                        // Tolak jika belum Clock In
                         if (!existing || !existing.clock_in) {
                             return res.json({ 
                                 success: false, 
@@ -330,7 +330,7 @@ app.post('/api/attendance', (req, res) => {
                             });
                         }
 
-                        // VALIDASI: Tolak jika sudah pernah Clock Out hari ini
+                        // Tolak jika sudah pernah Clock Out hari ini
                         if (existing.clock_out) {
                             return res.json({ 
                                 success: false, 
