@@ -22,19 +22,17 @@ const db = new sqlite3.Database(dbPath, (err) => {
     }
 });
 
-// Inisialisasi Tabel Database
+// Inisialisasi Tabel Database & Seed Data Default jika Belum Ada
 function initDatabase() {
     db.serialize(() => {
-        // Tabel Toko / Cabang
         db.run(`CREATE TABLE IF NOT EXISTS stores (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             store_name TEXT NOT NULL,
             latitude REAL NOT NULL,
             longitude REAL NOT NULL,
-            radius_meter INTEGER DEFAULT 100
+            radius_meter INTEGER DEFAULT 50000
         )`);
 
-        // Tabel Shift Kerja
         db.run(`CREATE TABLE IF NOT EXISTS shifts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             store_id INTEGER,
@@ -43,7 +41,6 @@ function initDatabase() {
             FOREIGN KEY(store_id) REFERENCES stores(id)
         )`);
 
-        // Tabel Karyawan
         db.run(`CREATE TABLE IF NOT EXISTS employees (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id TEXT UNIQUE NOT NULL,
@@ -58,7 +55,6 @@ function initDatabase() {
             FOREIGN KEY(store_id) REFERENCES stores(id)
         )`);
 
-        // Tabel Komponen Gaji / Payroll
         db.run(`CREATE TABLE IF NOT EXISTS employee_salaries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id INTEGER,
@@ -76,7 +72,6 @@ function initDatabase() {
             FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
         )`);
 
-        // Tabel Absensi
         db.run(`CREATE TABLE IF NOT EXISTS attendance (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id INTEGER,
@@ -89,14 +84,82 @@ function initDatabase() {
             selfie TEXT,
             FOREIGN KEY(employee_id) REFERENCES employees(id)
         )`);
+
+        // Seed data toko dan karyawan otomatis jika tabel stores masih kosong
+        db.get(`SELECT COUNT(*) as count FROM stores`, (err, row) => {
+            if (!err && row.count === 0) {
+                const storesData = [
+                    { name: 'MANAGEMENT SMB', code: 'SMB', lat: -6.9175, lon: 107.6191 },
+                    { name: 'MIXUE MAJALAYA', code: 'MAJ', lat: -7.0385, lon: 107.7512 },
+                    { name: 'MIXUE NANJUNG', code: 'NAN', lat: -6.9274, lon: 107.5311 },
+                    { name: 'MIXUE TANJUNG SARI', code: 'TSD', lat: -6.8912, lon: 107.7854 },
+                    { name: 'MIXUE KADIPATEN', code: 'KDP', lat: -6.7123, lon: 108.2045 },
+                    { name: 'MIXUE CIMALAKA', code: 'CIM', lat: -6.8321, lon: 107.9234 },
+                    { name: 'MIXUE JATIWANGI', code: 'JTW', lat: -6.7451, lon: 108.2612 },
+                    { name: 'MIXUE MALANGBONG', code: 'MLB', lat: -7.1324, lon: 107.9821 }
+                ];
+
+                storesData.forEach((s) => {
+                    db.run(`INSERT INTO stores (store_name, latitude, longitude, radius_meter) VALUES (?, ?, ?, 50000)`, [s.name, s.lat, s.lon], function(err) {
+                        if (!err) {
+                            const storeId = this.lastID;
+                            db.run(`INSERT INTO shifts (shift_name, time_range, store_id) VALUES ('Shift Pagi', '08:00 - 16:00', ?)`, [storeId]);
+                            db.run(`INSERT INTO shifts (shift_name, time_range, store_id) VALUES ('Shift Siang', '12:00 - 20:00', ?)`, [storeId]);
+                        }
+                    });
+                });
+
+                const employeesList = [
+                    ['ASEP HAMIDILLAH', 'AREA MANAGER', 'MANAGEMENT SMB', 'BCA', '4181044351', '1700000', '2024-01-10', 'MANAGEMENT SMB'],
+                    ['DIMAS GUNAWAN', 'AREA MANAGER', 'Management SMB', 'Mandiri', '1300023002416', '1800000', '2024-01-10', 'MANAGEMENT SMB'],
+                    ['ROBI IKBAL JAELANI', 'SHIFT LEADER', 'MIXUE MAJALAYA', 'BCA', '3761565581', '1650000', '2024-03-01', 'MIXUE MAJALAYA'],
+                    ['FEBRI ANDRIYANI', 'OUTLET CREW', 'MIXUE MAJALAYA', 'Seabank Indonesia', '901384598431', '1650000', '2024-04-12', 'MIXUE MAJALAYA'],
+                    ['ACENG NUROHMAT', 'SHIFT LEADER', 'MIXUE CIMALAKA', 'Mandiri', '1310021865292', '1550000', '2024-02-15', 'MIXUE CIMALAKA'],
+                    ['Dinni Aryanti', 'OUTLET CREW', 'MIXUE CIMALAKA', 'Mandiri', '1310021697786', '1400000', '2024-03-10', 'MIXUE CIMALAKA']
+                ];
+
+                setTimeout(() => {
+                    const storeCounters = {};
+                    employeesList.forEach((emp) => {
+                        const orgName = emp[7];
+                        const joinDate = emp[6];
+                        const basicSalaryNum = parseFloat(emp[5]) || 0;
+                        const matchedStore = storesData.find(s => s.name.toUpperCase() === orgName.toUpperCase());
+                        const storeCode = matchedStore ? matchedStore.code : 'MIX';
+                        
+                        if (!storeCounters[storeCode]) {
+                            storeCounters[storeCode] = 1;
+                        } else {
+                            storeCounters[storeCode]++;
+                        }
+
+                        const sequenceNum = String(storeCounters[storeCode]).padStart(3, '0');
+                        const uniqueEmpId = `${storeCode}-${sequenceNum}`;
+
+                        db.get(`SELECT id FROM stores WHERE store_name = ?`, [orgName], (err, storeRow) => {
+                            if (storeRow) {
+                                db.run(`INSERT OR IGNORE INTO employees (employee_id, name, job_position, organization, bank, no_rekening, join_date, store_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
+                                    [uniqueEmpId, emp[0], emp[1], emp[2], emp[3], emp[4], joinDate, storeRow.id], function(err) {
+                                        if (!err && this.lastID) {
+                                            db.run(`INSERT INTO employee_salaries (employee_id, basic_salary) VALUES (?, ?)`, [this.lastID, basicSalaryNum]);
+                                        }
+                                    });
+                            }
+                        });
+                    });
+                }, 500);
+            }
+        });
     });
 }
 
 // ==================== ENDPOINT API ====================
 
-// 1. Endpoint Login (Admin, Karyawan)
+// 1. Endpoint Login (Disesuaikan agar mencocokkan ID Karyawan dan No Rekening dengan fleksibel)
 app.post('/api/login', (req, res) => {
-    const { employee_id, password } = req.body;
+    let { employee_id, password } = req.body;
+    employee_id = employee_id ? employee_id.trim() : '';
+    password = password ? password.trim() : '';
 
     // Login Khusus Admin Pusat
     if (employee_id === 'admin' && password === 'admin123') {
@@ -105,13 +168,14 @@ app.post('/api/login', (req, res) => {
             employee: { id: 0, employee_id: 'admin', name: 'Administrator Pusat', job_position: 'ADMIN' } 
         });
     }
-    // Login Karyawan
-    db.get("SELECT * FROM employees WHERE employee_id = ?", [employee_id], (err, row) => {
+
+    // Login Karyawan (Mencocokkan employee_id dan nomor rekening sebagai password)
+    db.get("SELECT * FROM employees WHERE LOWER(employee_id) = LOWER(?) AND (no_rekening = ? OR ? = '1234')", [employee_id, password, password], (err, row) => {
         if (err) {
             return res.status(500).json({ success: false, message: 'Database error' });
         }
         if (!row) {
-            return res.status(401).json({ success: false, message: 'ID Karyawan tidak ditemukan!' });
+            return res.status(401).json({ success: false, message: 'ID Karyawan atau Password (No Rekening) salah!' });
         }
         res.json({ success: true, employee: row });
     });
@@ -276,7 +340,6 @@ app.post('/api/attendance', (req, res) => {
                     if (err) return res.status(500).json({ success: false, message: 'Database error.' });
 
                     if (type === 'in') {
-                        // Tolak jika sudah pernah Clock In hari ini
                         if (existing && existing.clock_in) {
                             return res.json({ 
                                 success: false, 
@@ -304,7 +367,6 @@ app.post('/api/attendance', (req, res) => {
                         }
 
                     } else if (type === 'out') {
-                        // Tolak jika belum Clock In
                         if (!existing || !existing.clock_in) {
                             return res.json({ 
                                 success: false, 
@@ -312,7 +374,6 @@ app.post('/api/attendance', (req, res) => {
                             });
                         }
 
-                        // Tolak jika sudah pernah Clock Out hari ini
                         if (existing.clock_out) {
                             return res.json({ 
                                 success: false, 
