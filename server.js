@@ -2,7 +2,6 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const bodyParser = require('body-parser');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,16 +10,8 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json({ limit: '10mb' })); 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Konfigurasi Database dengan Pembuatan Direktori Otomatis untuk Render Disk (/data)
-let dbPath = path.resolve(__dirname, 'database.sqlite');
-
-if (process.env.RENDER) {
-    const dir = '/data';
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
-    dbPath = path.join(dir, 'database.sqlite');
-}
+// Konfigurasi Database Lokal di dalam Folder Project (Aman, Tanpa Error Permission / Disk)
+const dbPath = path.resolve(__dirname, 'database.sqlite');
 
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
