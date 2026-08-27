@@ -170,6 +170,25 @@
         </table>
     </div>
 </div>
+<div class="store-section-card" style="margin-top: 25px;">
+    <h4 style="margin-top: 0; color: var(--mixue-red); font-size: 15px;">📋 Riwayat Absensi Anda (5 Hari Terakhir)</h4>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Shift</th>
+                    <th>Jam Masuk</th>
+                    <th>Jam Pulang</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="myAttendanceHistoryBody">
+                <!-- Dimuat dinamis via JavaScript -->
+            </tbody>
+        </table>
+    </div>
+</div>
 <!-- Tombol Absensi Dinamis (Anti Salah Klik) -->
     <div id="attendanceActionContainer">
         <div id="actionButtonWrapper" style="display: flex; gap: 10px; margin-bottom: 15px;">
@@ -306,7 +325,59 @@ async function loadAttendance() {
             `;
         });
     }
+async function loadMyAttendanceHistory(employeeId) {
+    try {
+        const res = await fetch(`/api/attendance?employee_id=${employeeId}`);
+        const data = await res.json();
+        
+        const tbody = document.getElementById('myAttendanceHistoryBody');
+        tbody.innerHTML = '';
 
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #666;">Belum ada riwayat absensi tercatat.</td></tr>`;
+            return;
+        }
+
+        // Ambil 5 riwayat terbaru
+        const recentData = data.slice(-5).reverse();
+
+        recentData.forEach(row => {
+            let statusBadge = row.clock_in ? '<span class="badge badge-success">Hadir</span>' : '<span class="badge badge-danger">Alpha</span>';
+            tbody.innerHTML += `
+                <tr>
+                    <td>${row.date}</td>
+                    <td>${row.shift_name || 'Reguler'}</td>
+                    <td>${row.clock_in || '-'}</td>
+                    <td>${row.clock_out || '-'}</td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `;
+        });
+    } catch (err) {
+        console.error("Gagal memuat riwayat absensi:", err);
+    }
+}
+
+// Validasi GPS Radius yang Lebih Interaktif
+function validateGpsRadius(userLat, userLng, storeLat, storeLng) {
+    // Menghitung jarak perkiraan dalam meter (Haversine formula sederhana)
+    const R = 6371e3; // Radius bumi dalam meter
+    const dLat = (storeLat - userLat) * Math.PI / 180;
+    const dLon = (storeLng - userLng) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(userLat * Math.PI / 180) * Math.cos(storeLat * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c; // Jarak dalam meter
+
+    // Toleransi radius toko misal 50 meter
+    const maxRadius = 50; 
+    if (distance > maxRadius) {
+        alert(`❌ Gagal Absen: Anda berada sekitar ${Math.round(distance)} meter dari titik toko. Harap mendekat dalam radius ${maxRadius} meter.`);
+        return false;
+    }
+    return true;
+}
     function renderSmartActionButtons(record) {
         const wrapper = document.getElementById('actionButtonWrapper');
         

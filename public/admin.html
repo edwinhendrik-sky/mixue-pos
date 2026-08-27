@@ -20,7 +20,7 @@
             padding: 20px; 
         }
         .container { 
-            max-width: 1300px; 
+            max-width: 1350px; 
             margin: auto; 
             background: white; 
             padding: 30px; 
@@ -96,12 +96,32 @@
         .stat-card h4 { margin: 0 0 6px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; }
         .stat-card p { margin: 0; font-size: 26px; font-weight: bold; }
 
-        .filter-box { background: #fff5f5; padding: 18px; border-radius: 10px; margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; border: 1px solid var(--mixue-border); }
-        .filter-group { flex: 1; min-width: 220px; }
-        label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 13px; color: #444; }
-        select, input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 13px; }
-        select:focus, input:focus { border-color: var(--mixue-red); outline: none; box-shadow: 0 0 5px rgba(227, 27, 35, 0.2); }
-        
+        /* Slicer / Interactive Filter Styling */
+        .slicer-panel { background: #fff5f5; padding: 20px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--mixue-border); box-shadow: 0 4px 12px rgba(227, 27, 35, 0.05); }
+        .slicer-section { margin-bottom: 15px; }
+        .slicer-section:last-child { margin-bottom: 0; }
+        .slicer-label { font-weight: bold; font-size: 13px; color: var(--mixue-dark-red); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .slicer-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .slicer-chip {
+            background: #ffffff;
+            border: 1px solid #ffccd2;
+            color: #444;
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        }
+        .slicer-chip:hover { background: #ffebee; border-color: var(--mixue-red); color: var(--mixue-red); }
+        .slicer-chip.active {
+            background: var(--mixue-red);
+            color: white;
+            border-color: var(--mixue-dark-red);
+            box-shadow: 0 3px 8px rgba(227, 27, 35, 0.3);
+        }
+
         .store-section-card {
             background: #fff;
             border: 1px solid #e0e0e0;
@@ -118,6 +138,8 @@
             border-bottom: 2px solid #f1f1f1;
             padding-bottom: 12px;
             margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid #e0e0e0; }
@@ -152,6 +174,10 @@
         .badge-success { background: #2ecc71; }
         .badge-danger { background: #e74c3c; }
         .section-title { font-weight: bold; color: var(--mixue-red); border-bottom: 2px solid var(--mixue-border); margin-top: 20px; margin-bottom: 15px; padding-bottom: 6px; font-size: 14px; text-transform: uppercase; }
+        
+        .filter-box { background: #fff5f5; padding: 18px; border-radius: 10px; margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; border: 1px solid var(--mixue-border); }
+        .filter-group { flex: 1; min-width: 200px; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -177,16 +203,26 @@
         <button onclick="switchTab('salaryTab', event)">💰 Laporan & Komponen Gaji</button>
     </div>
 
-    <!-- TAB 1: DASHBOARD PER TOKO -->
+    <!-- TAB 1: DASHBOARD PER TOKO DENGAN SLICER INTERAKTIF -->
     <div id="dashboardTab" class="tab-content active">
-        <h3>Ringkasan & Kehadiran Operasional Per Toko / Cabang Mixue (Urut ID Karyawan)</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+            <h3>Ringkasan & Kehadiran Operasional Per Toko (Slicer Interaktif)</h3>
+            <button onclick="refreshDashboardData()" class="btn btn-success" style="padding: 8px 16px; font-size: 13px;">🔄 Refresh Data</button>
+        </div>
         
-        <div class="filter-box">
-            <div class="filter-group">
-                <label>Filter Tampilan Toko:</label>
-                <select id="dashboardStoreFilter" onchange="renderDashboardPerStore()">
-                    <option value="">-- Semua Toko (Tampilkan Semua Cabang) --</option>
-                </select>
+        <!-- PANEL SLICER INTERAKTIF -->
+        <div class="slicer-panel">
+            <div class="slicer-section">
+                <div class="slicer-label">🏢 Slicer Cabang Toko:</div>
+                <div class="slicer-chips" id="storeSlicerContainer">
+                    <!-- Dirender dinamis oleh JS -->
+                </div>
+            </div>
+            <div class="slicer-section" style="margin-top: 15px;">
+                <div class="slicer-label">📅 Slicer Tanggal Absen:</div>
+                <div class="slicer-chips" id="dateSlicerContainer">
+                    <!-- Dirender dinamis oleh JS -->
+                </div>
             </div>
         </div>
 
@@ -196,7 +232,7 @@
                 <p id="statTotalEmp">0</p>
             </div>
             <div class="stat-card card-present">
-                <h4>Sudah Absen Hari Ini</h4>
+                <h4>Sudah Absen</h4>
                 <p id="statPresentEmp">0</p>
             </div>
             <div class="stat-card card-absent">
@@ -387,6 +423,10 @@
     let allAttendance = [];
     let allEmployees = [];
 
+    // State Slicer Aktif
+    let activeStoreSlicer = '';
+    let activeDateSlicer = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+
     function switchTab(tabId, event) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active'));
@@ -405,28 +445,29 @@
         
         const filterStoreSelect = document.getElementById('filterStore');
         const modalStoreSelect = document.getElementById('modalStoreSelect');
-        const dashboardStoreFilter = document.getElementById('dashboardStoreFilter');
         const employeeStoreFilter = document.getElementById('employeeStoreFilter');
 
         allStores.forEach(s => {
             filterStoreSelect.innerHTML += `<option value="${s.store_name}">${s.store_name}</option>`;
             modalStoreSelect.innerHTML += `<option value="${s.id}">${s.store_name}</option>`;
-            dashboardStoreFilter.innerHTML += `<option value="${s.store_name}">${s.store_name}</option>`;
             employeeStoreFilter.innerHTML += `<option value="${s.store_name}">${s.store_name}</option>`;
         });
 
-        dashboardStoreFilter.innerHTML += `<option value="Management SMB">Management SMB</option>`;
         employeeStoreFilter.innerHTML += `<option value="Management SMB">Management SMB</option>`;
 
         await loadEmployeeData();
         await loadAttendanceData();
     }
 
+    async function refreshDashboardData() {
+        await loadEmployeeData();
+        await loadAttendanceData();
+        alert('Data dashboard berhasil diperbarui!');
+    }
+
     async function loadEmployeeData() {
         const res = await fetch('/api/employees-with-salary');
         allEmployees = await res.json();
-        
-        // Urutkan seluruh data karyawan berdasarkan employee_id secara ascending
         allEmployees.sort((a, b) => (a.employee_id || '').localeCompare(b.employee_id || '', undefined, { numeric: true }));
 
         renderEmployeePerStore();
@@ -437,24 +478,66 @@
         const res = await fetch('/api/attendance');
         allAttendance = await res.json();
         renderAttendanceTable(allAttendance);
+        initStoreSlicers();
+        initDateSlicers();
+        renderDashboardPerStore();
+    }
+
+    function initStoreSlicers() {
+        const container = document.getElementById('storeSlicerContainer');
+        let storeNames = [...new Set(allEmployees.map(e => e.store_name || 'Management SMB'))];
+        storeNames.sort();
+
+        let html = `<div class="slicer-chip ${activeStoreSlicer === '' ? 'active' : ''}" onclick="setStoreSlicer('')">🌐 Semua Toko</div>`;
+        storeNames.forEach(name => {
+            html += `<div class="slicer-chip ${activeStoreSlicer === name ? 'active' : ''}" onclick="setStoreSlicer('${name}')">🏢 ${name}</div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function initDateSlicers() {
+        const container = document.getElementById('dateSlicerContainer');
+        // Ambil 5 tanggal unik terakhir dari data absensi + hari ini
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+        let dates = [...new Set(allAttendance.map(a => a.date))];
+        if (!dates.includes(todayStr)) dates.push(todayStr);
+        dates.sort().reverse();
+        // Batasi maksimal 7 tanggal terbaru agar rapi
+        dates = dates.slice(0, 7);
+
+        let html = '';
+        dates.forEach(d => {
+            html += `<div class="slicer-chip ${activeDateSlicer === d ? 'active' : ''}" onclick="setDateSlicer('${d}')">📅 ${d}</div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function setStoreSlicer(storeName) {
+        activeStoreSlicer = storeName;
+        initStoreSlicers();
+        renderDashboardPerStore();
+    }
+
+    function setDateSlicer(dateStr) {
+        activeDateSlicer = dateStr;
+        initDateSlicers();
         renderDashboardPerStore();
     }
 
     function renderDashboardPerStore() {
-        // Filter out admin & urutkan berdasarkan employee_id
         let validEmployees = allEmployees.filter(emp => emp.employee_id !== 'admin');
         validEmployees.sort((a, b) => (a.employee_id || '').localeCompare(b.employee_id || '', undefined, { numeric: true }));
 
-        const todayStr = new Date().toISOString().split('T')[0];
-        const todayAttendance = allAttendance.filter(item => item.date === todayStr);
-        const selectedStore = document.getElementById('dashboardStoreFilter').value;
+        const filterDate = activeDateSlicer || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+        const selectedStore = activeStoreSlicer;
+
+        const filteredAttendance = allAttendance.filter(item => item.date === filterDate);
 
         let totalEmp = 0;
         let presentEmp = 0;
         let absentEmp = 0;
 
         let storeNames = [...new Set(validEmployees.map(e => e.store_name || 'Management SMB'))];
-        // Urutkan nama toko agar konsisten
         storeNames.sort();
 
         if (selectedStore) {
@@ -465,7 +548,7 @@
         container.innerHTML = '';
 
         storeNames.forEach(storeName => {
-            const empInStore = validEmployees.filter(e => (e.store_name || 'Management SMB') === storeName);
+            let empInStore = validEmployees.filter(e => (e.store_name || 'Management SMB') === storeName);
             if (empInStore.length === 0) return;
 
             let storePresentCount = 0;
@@ -474,10 +557,10 @@
 
             empInStore.forEach(emp => {
                 totalEmp++;
-                const record = todayAttendance.find(item => item.employee_id === emp.employee_id);
+                const record = filteredAttendance.find(item => String(item.employee_id).trim().toUpperCase() === String(emp.employee_id).trim().toUpperCase());
                 const photoUrl = emp.photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
 
-                if (record) {
+                if (record && record.clock_in) {
                     presentEmp++;
                     storePresentCount++;
                     rowsHtml += `
@@ -507,7 +590,7 @@
                     <div class="store-section-header">
                         <div>
                             <h4 style="margin: 0; color: var(--mixue-red); font-size: 16px;">🍦 Cabang: ${storeName}</h4>
-                            <small style="color: #666;">Total Karyawan: ${empInStore.length} orang | Hadir: ${storePresentCount} | Belum: ${storeAbsentCount}</small>
+                            <small style="color: #666;">Total Karyawan: ${empInStore.length} orang | Hadir: ${storePresentCount} | Belum: ${storeAbsentCount} (Tanggal: ${filterDate})</small>
                         </div>
                         <span class="badge ${rate >= 75 ? 'badge-success' : 'badge-danger'}">Kehadiran: ${rate}%</span>
                     </div>
@@ -517,7 +600,7 @@
                                 <tr>
                                     <th width="50">Foto</th>
                                     <th>ID & Nama Karyawan (Urut ID)</th>
-                                    <th>Status Kehadiran Hari Ini (${todayStr})</th>
+                                    <th>Status Kehadiran (${filterDate})</th>
                                 </tr>
                             </thead>
                             <tbody>${rowsHtml}</tbody>
@@ -679,99 +762,7 @@
             `;
         });
     }
-function renderDashboardPerStore() {
-        let validEmployees = allEmployees.filter(emp => emp.employee_id !== 'admin');
-        validEmployees.sort((a, b) => (a.employee_id || '').localeCompare(b.employee_id || '', undefined, { numeric: true }));
 
-        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-        // Cocokkan berdasarkan item.employee_id (id angka) dengan emp.id
-        const todayAttendance = allAttendance.filter(item => item.date === todayStr);
-        const selectedStore = document.getElementById('dashboardStoreFilter').value;
-
-        let totalEmp = 0;
-        let presentEmp = 0;
-        let absentEmp = 0;
-
-        let storeNames = [...new Set(validEmployees.map(e => e.store_name || 'Management SMB'))];
-        storeNames.sort();
-
-        if (selectedStore) {
-            storeNames = [selectedStore];
-        }
-
-        const container = document.getElementById('storeDashboardContainer');
-        container.innerHTML = '';
-
-        storeNames.forEach(storeName => {
-            const empInStore = validEmployees.filter(e => (e.store_name || 'Management SMB') === storeName);
-            if (empInStore.length === 0) return;
-
-            let storePresentCount = 0;
-            let storeAbsentCount = 0;
-            let rowsHtml = '';
-
-            empInStore.forEach(emp => {
-                totalEmp++;
-                // PERBAIKAN: Cocokkan item.employee_id dengan emp.id (primary key database)
-                const record = todayAttendance.find(item => Number(item.employee_id) === Number(emp.id));
-                const photoUrl = emp.photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-
-                if (record && record.clock_in) {
-                    presentEmp++;
-                    storePresentCount++;
-                    rowsHtml += `
-                        <tr>
-                            <td><img src="${photoUrl}" class="avatar-cell" alt="Foto"></td>
-                            <td><strong>[${emp.employee_id}]</strong> ${emp.name}<br><small>${emp.job_position}</small></td>
-                            <td><span style="color: #27ae60; font-weight: bold;">Hadir (In: ${record.clock_in || '-'}, Out: ${record.clock_out || '-'})</span></td>
-                        </tr>
-                    `;
-                } else {
-                    absentEmp++;
-                    storeAbsentCount++;
-                    rowsHtml += `
-                        <tr>
-                            <td><img src="${photoUrl}" class="avatar-cell" alt="Foto"></td>
-                            <td><strong>[${emp.employee_id}]</strong> ${emp.name}<br><small>${emp.job_position}</small></td>
-                            <td><span style="color: #e74c3c; font-weight: bold;">Belum Absen</span></td>
-                        </tr>
-                    `;
-                }
-            });
-
-            const rate = empInStore.length > 0 ? Math.round((storePresentCount / empInStore.length) * 100) : 0;
-
-            container.innerHTML += `
-                <div class="store-section-card">
-                    <div class="store-section-header">
-                        <div>
-                            <h4 style="margin: 0; color: var(--mixue-red); font-size: 16px;">🍦 Cabang: ${storeName}</h4>
-                            <small style="color: #666;">Total Karyawan: ${empInStore.length} orang | Hadir: ${storePresentCount} | Belum: ${storeAbsentCount}</small>
-                        </div>
-                        <span class="badge ${rate >= 75 ? 'badge-success' : 'badge-danger'}">Kehadiran: ${rate}%</span>
-                    </div>
-                    <div class="table-responsive">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th width="50">Foto</th>
-                                    <th>ID & Nama Karyawan (Urut ID)</th>
-                                    <th>Status Kehadiran Hari Ini (${todayStr})</th>
-                                </tr>
-                            </thead>
-                            <tbody>${rowsHtml}</tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        });
-
-        document.getElementById('statTotalEmp').textContent = totalEmp;
-        document.getElementById('statPresentEmp').textContent = presentEmp;
-        document.getElementById('statAbsentEmp').textContent = absentEmp;
-        const overallRate = totalEmp > 0 ? Math.round((presentEmp / totalEmp) * 100) : 0;
-        document.getElementById('statAttendanceRate').textContent = `${overallRate}%`;
-    }
     function filterAttendance() {
         const storeName = document.getElementById('filterStore').value;
         const dateVal = document.getElementById('filterDate').value;
@@ -895,7 +886,7 @@ function renderDashboardPerStore() {
         document.getElementById('modalPhoto').value = '';
         document.getElementById('modalPhotoFile').value = '';
         document.getElementById('photoPreview').style.display = 'none';
-        document.getElementById('modalJoinDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('modalJoinDate').value = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
         
         ['salBasic','salTunjLeader','salTunjWeekend','salTunjLembur','salTunjSosmed','salBonusSetor','salBonusLain','salPotLate','salPotAbsen','salPotKasbon','salPotLain'].forEach(id => {
             document.getElementById(id).value = 0;
