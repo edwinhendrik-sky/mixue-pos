@@ -589,7 +589,10 @@
 
             empInStore.forEach(emp => {
                 totalEmp++;
-                const record = filteredAttendance.find(item => String(item.employee_id).trim().toUpperCase() === String(emp.employee_id).trim().toUpperCase());
+                const record = filteredAttendance.find(item => 
+                    (String(item.employee_id).trim().toUpperCase() === String(emp.employee_id).trim().toUpperCase()) ||
+                    (Number(item.employee_id) === Number(emp.id))
+                );
                 const photoUrl = emp.photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
 
                 if (record && record.clock_in) {
@@ -776,17 +779,17 @@
     function renderAttendanceTable(data) {
         const tbody = document.getElementById('attendanceTableBody');
         tbody.innerHTML = '';
-        if (data.length === 0) {
+        if (!data || data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Belum ada data absensi.</td></tr>`;
             return;
         }
         data.forEach(row => {
             tbody.innerHTML += `
                 <tr>
-                    <td><strong>[${row.employee_id}]</strong> ${row.employee_name}<br><small style="color:#666;">${row.job_position}</small></td>
-                    <td>${row.store_name}</td>
-                    <td>${row.shift_name}</td>
-                    <td>${row.date}</td>
+                    <td><strong>[${row.employee_id || '-'}]</strong> ${row.employee_name || 'Karyawan'}<br><small style="color:#666;">${row.job_position || '-'}</small></td>
+                    <td>${row.store_name || '-'}</td>
+                    <td>${row.shift_name || '-'}</td>
+                    <td>${row.date || '-'}</td>
                     <td>${row.clock_in || '-'}</td>
                     <td>${row.clock_out || '-'}</td>
                     <td>${row.selfie ? `<img src="${row.selfie}" width="35" style="border-radius:4px; border:1px solid #ddd;" />` : '-'}</td>
