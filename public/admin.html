@@ -679,7 +679,99 @@
             `;
         });
     }
+function renderDashboardPerStore() {
+        let validEmployees = allEmployees.filter(emp => emp.employee_id !== 'admin');
+        validEmployees.sort((a, b) => (a.employee_id || '').localeCompare(b.employee_id || '', undefined, { numeric: true }));
 
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+        // Cocokkan berdasarkan item.employee_id (id angka) dengan emp.id
+        const todayAttendance = allAttendance.filter(item => item.date === todayStr);
+        const selectedStore = document.getElementById('dashboardStoreFilter').value;
+
+        let totalEmp = 0;
+        let presentEmp = 0;
+        let absentEmp = 0;
+
+        let storeNames = [...new Set(validEmployees.map(e => e.store_name || 'Management SMB'))];
+        storeNames.sort();
+
+        if (selectedStore) {
+            storeNames = [selectedStore];
+        }
+
+        const container = document.getElementById('storeDashboardContainer');
+        container.innerHTML = '';
+
+        storeNames.forEach(storeName => {
+            const empInStore = validEmployees.filter(e => (e.store_name || 'Management SMB') === storeName);
+            if (empInStore.length === 0) return;
+
+            let storePresentCount = 0;
+            let storeAbsentCount = 0;
+            let rowsHtml = '';
+
+            empInStore.forEach(emp => {
+                totalEmp++;
+                // PERBAIKAN: Cocokkan item.employee_id dengan emp.id (primary key database)
+                const record = todayAttendance.find(item => Number(item.employee_id) === Number(emp.id));
+                const photoUrl = emp.photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+
+                if (record && record.clock_in) {
+                    presentEmp++;
+                    storePresentCount++;
+                    rowsHtml += `
+                        <tr>
+                            <td><img src="${photoUrl}" class="avatar-cell" alt="Foto"></td>
+                            <td><strong>[${emp.employee_id}]</strong> ${emp.name}<br><small>${emp.job_position}</small></td>
+                            <td><span style="color: #27ae60; font-weight: bold;">Hadir (In: ${record.clock_in || '-'}, Out: ${record.clock_out || '-'})</span></td>
+                        </tr>
+                    `;
+                } else {
+                    absentEmp++;
+                    storeAbsentCount++;
+                    rowsHtml += `
+                        <tr>
+                            <td><img src="${photoUrl}" class="avatar-cell" alt="Foto"></td>
+                            <td><strong>[${emp.employee_id}]</strong> ${emp.name}<br><small>${emp.job_position}</small></td>
+                            <td><span style="color: #e74c3c; font-weight: bold;">Belum Absen</span></td>
+                        </tr>
+                    `;
+                }
+            });
+
+            const rate = empInStore.length > 0 ? Math.round((storePresentCount / empInStore.length) * 100) : 0;
+
+            container.innerHTML += `
+                <div class="store-section-card">
+                    <div class="store-section-header">
+                        <div>
+                            <h4 style="margin: 0; color: var(--mixue-red); font-size: 16px;">🍦 Cabang: ${storeName}</h4>
+                            <small style="color: #666;">Total Karyawan: ${empInStore.length} orang | Hadir: ${storePresentCount} | Belum: ${storeAbsentCount}</small>
+                        </div>
+                        <span class="badge ${rate >= 75 ? 'badge-success' : 'badge-danger'}">Kehadiran: ${rate}%</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th width="50">Foto</th>
+                                    <th>ID & Nama Karyawan (Urut ID)</th>
+                                    <th>Status Kehadiran Hari Ini (${todayStr})</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById('statTotalEmp').textContent = totalEmp;
+        document.getElementById('statPresentEmp').textContent = presentEmp;
+        document.getElementById('statAbsentEmp').textContent = absentEmp;
+        const overallRate = totalEmp > 0 ? Math.round((presentEmp / totalEmp) * 100) : 0;
+        document.getElementById('statAttendanceRate').textContent = `${overallRate}%`;
+    }
     function filterAttendance() {
         const storeName = document.getElementById('filterStore').value;
         const dateVal = document.getElementById('filterDate').value;

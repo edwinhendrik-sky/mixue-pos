@@ -170,7 +170,12 @@
         </table>
     </div>
 </div>
-
+<!-- Tombol Absensi Dinamis (Anti Salah Klik) -->
+    <div id="attendanceActionContainer">
+        <div id="actionButtonWrapper" style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <!-- Tombol akan dirender secara dinamis oleh JavaScript -->
+        </div>
+    </div>
 <!-- MODAL PROFIL KARYAWAN -->
 <div id="profileModal" class="modal">
     <div class="modal-content">
@@ -276,7 +281,61 @@
         }
         loadAttendance();
     }
+async function loadAttendance() {
+        const res = await fetch('/api/attendance');
+        const data = await res.json();
+        const tbody = document.getElementById('attendanceTable');
+        tbody.innerHTML = '';
+        
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+        // Cek apakah karyawan ini sudah absen hari ini
+        const myTodayRecord = data.find(row => Number(row.employee_id) === Number(loggedInEmployee.id) && row.date === todayStr);
 
+        renderSmartActionButtons(myTodayRecord);
+
+        data.forEach(row => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>[${row.employee_id}] ${row.employee_name}</strong><br><small>${row.job_position}</small></td>
+                    <td>${row.store_name}</td>
+                    <td>${row.shift_name}</td>
+                    <td>${row.clock_in || '-'}</td>
+                    <td>${row.clock_out || '-'}</td>
+                    <td>${row.selfie ? `<img src="${row.selfie}" width="40" style="border-radius:2px;" />` : '-'}</td>
+                </tr>
+            `;
+        });
+    }
+
+    function renderSmartActionButtons(record) {
+        const wrapper = document.getElementById('actionButtonWrapper');
+        
+        let hasClockIn = record && record.clock_in;
+        let hasClockOut = record && record.clock_out;
+
+        if (!hasClockIn) {
+            // Belum absen masuk -> Tampilkan tombol Clock In saja
+            wrapper.innerHTML = `
+                <button onclick="submitAttendance('in')" style="background-color: #27ae60; font-size: 15px; padding: 14px;">
+                    🟢 Klik Di Sini untuk CLOCK IN (Masuk)
+                </button>
+            `;
+        } else if (hasClockIn && !hasClockOut) {
+            // Sudah masuk tapi belum pulang -> Tampilkan tombol Clock Out saja
+            wrapper.innerHTML = `
+                <button onclick="submitAttendance('out')" style="background-color: #e31b23; font-size: 15px; padding: 14px;">
+                    🔴 Anda sudah Masuk (${record.clock_in}). Klik untuk CLOCK OUT (Pulang)
+                </button>
+            `;
+        } else {
+            // Sudah lengkap keduanya hari ini
+            wrapper.innerHTML = `
+                <div style="width: 100%; background: #e8f5e9; color: #2e7d32; padding: 12px; border-radius: 6px; text-align: center; font-weight: bold; border: 1px solid #c8e6c9;">
+                    ✅ Absensi hari ini sudah lengkap (Masuk: ${record.clock_in} | Pulang: ${record.clock_out})
+                </div>
+            `;
+        }
+    }
     function openProfileModal() {
         const store = storesData.find(s => s.id == loggedInEmployee.store_id);
         document.getElementById('profEmpId').textContent = loggedInEmployee.employee_id || '-';
