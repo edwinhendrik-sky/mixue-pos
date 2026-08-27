@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Karyawan - Mixue Multi Store</title>
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3076/3076129.png">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #fff5f5 0%, #ffebee 100%); 
+            color: #333; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        .container { 
+            max-width: 850px; 
+            margin: auto; 
+            background: white; 
+            padding: 25px; 
+            border-radius: 10px; 
+            box-shadow: 0 6px 16px rgba(227, 27, 35, 0.12); 
+            border-top: 8px solid #e31b23; 
+        }
+        .header-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .header-brand img {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            background: #fff;
+            padding: 4px;
+            border-radius: 50%;
+            border: 2px solid #ffcdd2;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        h2, h3 { color: #e31b23; text-align: center; margin: 5px 0; }
+        
+        .user-welcome-card {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: #fff8f8; 
+            padding: 12px 18px; 
+            border-radius: 8px; 
+            margin-bottom: 20px;
+            border: 1px solid #ffcdd2;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .user-action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #444; }
+        select, button { width: 100%; padding: 11px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; margin-top: 5px; font-size: 14px; }
+        button { background-color: #e31b23; color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button:hover { background-color: #c2151d; }
+        
+        .media-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .media-box { background: #fafafa; padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px; }
+        video, canvas { width: 100%; max-height: 200px; background: #000; border-radius: 6px; display: block; margin-top: 5px; }
+        #canvas { display: none; }
+        #map { width: 100%; height: 200px; border-radius: 6px; margin-top: 5px; }
+
+        .info-box { background: #e3f2fd; padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; color: #0d47a1; border-left: 4px solid #2196f3; }
+        .store-info-box { background: #fff8e1; padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; color: #ff8f00; border: 1px solid #ffe082; border-left: 4px solid #ffb300; }
+        
+        table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size: 12px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #e31b23; color: white; }
+
+        /* Modal Profile Styling */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; overflow-y: auto; padding: 20px; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); border-top: 8px solid #e31b23; }
+        .profile-avatar-container { text-align: center; margin-bottom: 15px; }
+        .profile-avatar { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid #e31b23; background: #eee; }
+        .profile-info-row { margin-bottom: 10px; font-size: 13px; border-bottom: 1px solid #f1f1f1; padding-bottom: 6px; }
+        .profile-info-row strong { color: #555; display: inline-block; width: 130px; }
+
+        @media (max-width: 600px) {
+            .media-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-brand">
+        <img src="https://cdn-icons-png.flaticon.com/512/3076/3076129.png" alt="Logo Mixue">
+        <h2>Sistem Absensi Karyawan Mixue</h2>
+    </div>
+
+    <div class="user-welcome-card">
+        <div>
+            <span id="welcomeText" style="font-weight: bold; color: #e31b23; font-size: 15px;">-</span><br>
+            <span id="jobPositionText" style="font-size: 12px; color: #555;">-</span>
+        </div>
+        <div class="user-action-btns">
+            <button onclick="openProfileModal()" style="width: auto; padding: 6px 14px; background: #27ae60; font-size: 12px; border-radius: 4px;">👤 Profil Saya</button>
+            <button onclick="logout()" style="width: auto; padding: 6px 14px; background: #555; font-size: 12px; border-radius: 4px;">Logout</button>
+        </div>
+    </div>
+
+    <div class="info-box" id="gpsStatus">📍 Mendeteksi lokasi GPS Anda...</div>
+
+    <!-- Pilihan Cabang Toko Khusus Management SMB -->
+    <div class="form-group" id="storeSelectContainer" style="display: none;">
+        <label>🌐 Pilih Cabang Toko Tujuan Absensi (Management SMB):</label>
+        <select id="activeStoreSelect" onchange="onStoreChange()">
+            <option value="">-- Pilih Cabang Toko Mixue --</option>
+        </select>
+    </div>
+
+    <div class="store-info-box" id="storeInfoBox">
+        <strong>🍦 Detail Lokasi Cabang Toko:</strong><br>
+        <span id="storeCoordText">-</span><br>
+        <span id="storeDistanceText">-</span>
+    </div>
+
+    <div class="form-group">
+        <label>Pilih Shift / Jam Kerja:</label>
+        <select id="shiftSelect">
+            <option value="">-- Pilih Shift Kerja --</option>
+        </select>
+    </div>
+
+    <div class="media-grid">
+        <div class="media-box">
+            <label>📸 Foto Selfie Kehadiran:</label>
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+            <button type="button" onclick="takeSnapshot()" style="background-color: #666; margin-top: 8px;">Ambil Foto Selfie</button>
+            <div id="previewContainer" style="margin-top: 8px; text-align: center;"></div>
+        </div>
+
+        <div class="media-box">
+            <label>🗺️ Peta Lokasi Toko & Anda:</label>
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+        <button onclick="submitAttendance('in')">Clock In (Masuk)</button>
+        <button onclick="submitAttendance('out')" style="background-color: #333;">Clock Out (Pulang)</button>
+    </div>
+
+    <h3 style="margin-top: 30px;">📋 Rekap Absensi Karyawan</h3>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID & Nama Karyawan</th>
+                    <th>Cabang Toko</th>
+                    <th>Shift</th>
+                    <th>Masuk</th>
+                    <th>Pulang</th>
+                    <th>Selfie</th>
+                </tr>
+            </thead>
+            <tbody id="attendanceTable"></tbody>
+        </table>
+    </div>
+</div>
+<div class="store-section-card" style="margin-top: 25px;">
+    <h4 style="margin-top: 0; color: var(--mixue-red); font-size: 15px;">📋 Riwayat Absensi Anda (5 Hari Terakhir)</h4>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Shift</th>
+                    <th>Jam Masuk</th>
+                    <th>Jam Pulang</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="myAttendanceHistoryBody">
+                <!-- Dimuat dinamis via JavaScript -->
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- Tombol Absensi Dinamis (Anti Salah Klik) -->
+    <div id="attendanceActionContainer">
+        <div id="actionButtonWrapper" style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <!-- Tombol akan dirender secara dinamis oleh JavaScript -->
+        </div>
+    </div>
+<!-- MODAL PROFIL KARYAWAN -->
+<div id="profileModal" class="modal">
+    <div class="modal-content">
+        <h3 style="margin-top:0; color:#e31b23;">👤 Profil Karyawan</h3>
+        
+        <div class="profile-avatar-container">
+            <img id="profileModalAvatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="profile-avatar" alt="Foto Profil"><br>
+            <label class="btn" style="display:inline-block; width:auto; padding:6px 12px; font-size:11px; margin-top:8px; cursor:pointer;">
+                📷 Ganti Foto Profil
+                <input type="file" id="profilePhotoInput" accept="image/*" style="display:none;" onchange="uploadProfilePhoto(event)">
+            </label>
+        </div>
+
+        <div class="profile-info-row"><strong>ID Karyawan:</strong> <span id="profEmpId">-</span></div>
+        <div class="profile-info-row"><strong>Nama Lengkap:</strong> <span id="profName">-</span></div>
+        <div class="profile-info-row"><strong>Jabatan:</strong> <span id="profPosition">-</span></div>
+        <div class="profile-info-row"><strong>Cabang Toko:</strong> <span id="profStore">-</span></div>
+        <div class="profile-info-row"><strong>Bank:</strong> <span id="profBank">-</span></div>
+        <div class="profile-info-row"><strong>No Rekening:</strong> <span id="profRekening">-</span></div>
+        <div class="profile-info-row"><strong>Tanggal Join:</strong> <span id="profJoinDate">-</span></div>
+
+        <div style="text-align: right; margin-top: 20px;">
+            <button onclick="closeProfileModal()" style="background: #6c757d; width: auto; padding: 8px 16px;">Tutup</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    let loggedInEmployee = JSON.parse(localStorage.getItem('employee'));
+    if (!loggedInEmployee) {
+        window.location.href = 'login.html';
+    }
+
+    let storesData = [];
+    let currentLat = null;
+    let currentLon = null;
+    let capturedImage = null;
+    let map = null;
+    let storeMarker = null;
+    let userMarker = null;
+    let selectedStoreId = loggedInEmployee.store_id;
+
+    const isManagementSMB = (loggedInEmployee.organization && loggedInEmployee.organization.toLowerCase().includes('management')) || 
+                            (loggedInEmployee.store_name && loggedInEmployee.store_name.toLowerCase().includes('management')) ||
+                            (loggedInEmployee.job_position && loggedInEmployee.job_position.toLowerCase().includes('management')) ||
+                            (loggedInEmployee.employee_id && loggedInEmployee.employee_id.toUpperCase().startsWith('SMB'));
+
+    function initMap() {
+        map = L.map('map').setView([-6.9175, 107.6191], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+    }
+    initMap();
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => { document.getElementById('video').srcObject = stream; })
+        .catch(err => { console.log("Kamera tidak aktif: " + err); });
+
+    if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(position => {
+            currentLat = position.coords.latitude;
+            currentLon = position.coords.longitude;
+            document.getElementById('gpsStatus').textContent = `GPS Aktif: Lat ${currentLat.toFixed(4)}, Lon ${currentLon.toFixed(4)}`;
+            updateUserMapMarker();
+            updateStoreDistanceInfo();
+        }, error => {
+            document.getElementById('gpsStatus').textContent = "Gagal mendeteksi GPS.";
+        }, { enableHighAccuracy: true });
+    }
+
+    async function initApp() {
+        const res = await fetch('/api/stores');
+        storesData = await res.json();
+        
+        document.getElementById('welcomeText').textContent = `👤 [${loggedInEmployee.employee_id}] ${loggedInEmployee.name} (Join: ${loggedInEmployee.join_date || '-'})`;
+        
+        const store = storesData.find(s => s.id == selectedStoreId);
+
+        if (isManagementSMB) {
+            document.getElementById('jobPositionText').textContent = `Jabatan: ${loggedInEmployee.job_position} | 🌐 Management SMB (Bebas Absen di Semua Cabang)`;
+            document.getElementById('storeSelectContainer').style.display = 'block';
+            
+            const activeStoreSelect = document.getElementById('activeStoreSelect');
+            activeStoreSelect.innerHTML = '<option value="">-- Pilih Cabang Toko Mixue --</option>';
+            storesData.forEach(s => {
+                let opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.store_name;
+                if (s.id == selectedStoreId) opt.selected = true;
+                activeStoreSelect.appendChild(opt);
+            });
+        } else {
+            document.getElementById('jobPositionText').textContent = `Jabatan: ${loggedInEmployee.job_position} | Cabang: ${store ? store.store_name : '-'}`;
+        }
+
+        loadShifts(selectedStoreId);
+        if (store) {
+            updateStoreMapMarker(store);
+            updateStoreDistanceInfo();
+        }
+        loadAttendance();
+    }
+async function loadAttendance() {
+        const res = await fetch('/api/attendance');
+        const data = await res.json();
+        const tbody = document.getElementById('attendanceTable');
+        tbody.innerHTML = '';
+        
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+        // Cek apakah karyawan ini sudah absen hari ini
+        const myTodayRecord = data.find(row => Number(row.employee_id) === Number(loggedInEmployee.id) && row.date === todayStr);
+
+        renderSmartActionButtons(myTodayRecord);
+
+        data.forEach(row => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>[${row.employee_id}] ${row.employee_name}</strong><br><small>${row.job_position}</small></td>
+                    <td>${row.store_name}</td>
+                    <td>${row.shift_name}</td>
+                    <td>${row.clock_in || '-'}</td>
+                    <td>${row.clock_out || '-'}</td>
+                    <td>${row.selfie ? `<img src="${row.selfie}" width="40" style="border-radius:2px;" />` : '-'}</td>
+                </tr>
+            `;
+        });
+    }
+async function loadMyAttendanceHistory(employeeId) {
+    try {
+        const res = await fetch(`/api/attendance?employee_id=${employeeId}`);
+        const data = await res.json();
+        
+        const tbody = document.getElementById('myAttendanceHistoryBody');
+        tbody.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #666;">Belum ada riwayat absensi tercatat.</td></tr>`;
+            return;
+        }
+
+        // Ambil 5 riwayat terbaru
+        const recentData = data.slice(-5).reverse();
+
+        recentData.forEach(row => {
+            let statusBadge = row.clock_in ? '<span class="badge badge-success">Hadir</span>' : '<span class="badge badge-danger">Alpha</span>';
+            tbody.innerHTML += `
+                <tr>
+                    <td>${row.date}</td>
+                    <td>${row.shift_name || 'Reguler'}</td>
+                    <td>${row.clock_in || '-'}</td>
+                    <td>${row.clock_out || '-'}</td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `;
+        });
+    } catch (err) {
+        console.error("Gagal memuat riwayat absensi:", err);
+    }
+}
+
+// Validasi GPS Radius yang Lebih Interaktif
+function validateGpsRadius(userLat, userLng, storeLat, storeLng) {
+    // Menghitung jarak perkiraan dalam meter (Haversine formula sederhana)
+    const R = 6371e3; // Radius bumi dalam meter
+    const dLat = (storeLat - userLat) * Math.PI / 180;
+    const dLon = (storeLng - userLng) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(userLat * Math.PI / 180) * Math.cos(storeLat * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c; // Jarak dalam meter
+
+    // Toleransi radius toko misal 50 meter
+    const maxRadius = 50; 
+    if (distance > maxRadius) {
+        alert(`❌ Gagal Absen: Anda berada sekitar ${Math.round(distance)} meter dari titik toko. Harap mendekat dalam radius ${maxRadius} meter.`);
+        return false;
+    }
+    return true;
+}
+    function renderSmartActionButtons(record) {
+        const wrapper = document.getElementById('actionButtonWrapper');
+        
+        let hasClockIn = record && record.clock_in;
+        let hasClockOut = record && record.clock_out;
+
+        if (!hasClockIn) {
+            // Belum absen masuk -> Tampilkan tombol Clock In saja
+            wrapper.innerHTML = `
+                <button onclick="submitAttendance('in')" style="background-color: #27ae60; font-size: 15px; padding: 14px;">
+                    🟢 Klik Di Sini untuk CLOCK IN (Masuk)
+                </button>
+            `;
+        } else if (hasClockIn && !hasClockOut) {
+            // Sudah masuk tapi belum pulang -> Tampilkan tombol Clock Out saja
+            wrapper.innerHTML = `
+                <button onclick="submitAttendance('out')" style="background-color: #e31b23; font-size: 15px; padding: 14px;">
+                    🔴 Anda sudah Masuk (${record.clock_in}). Klik untuk CLOCK OUT (Pulang)
+                </button>
+            `;
+        } else {
+            // Sudah lengkap keduanya hari ini
+            wrapper.innerHTML = `
+                <div style="width: 100%; background: #e8f5e9; color: #2e7d32; padding: 12px; border-radius: 6px; text-align: center; font-weight: bold; border: 1px solid #c8e6c9;">
+                    ✅ Absensi hari ini sudah lengkap (Masuk: ${record.clock_in} | Pulang: ${record.clock_out})
+                </div>
+            `;
+        }
+    }
+    function openProfileModal() {
+        const store = storesData.find(s => s.id == loggedInEmployee.store_id);
+        document.getElementById('profEmpId').textContent = loggedInEmployee.employee_id || '-';
+        document.getElementById('profName').textContent = loggedInEmployee.name || '-';
+        document.getElementById('profPosition').textContent = loggedInEmployee.job_position || '-';
+        document.getElementById('profStore').textContent = store ? store.store_name : (loggedInEmployee.store_name || 'Management SMB');
+        document.getElementById('profBank').textContent = loggedInEmployee.bank || '-';
+        document.getElementById('profRekening').textContent = loggedInEmployee.no_rekening || '-';
+        document.getElementById('profJoinDate').textContent = loggedInEmployee.join_date || '-';
+        
+        const avatarImg = document.getElementById('profileModalAvatar');
+        avatarImg.src = loggedInEmployee.photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+
+        document.getElementById('profileModal').style.display = 'flex';
+    }
+
+    function closeProfileModal() {
+        document.getElementById('profileModal').style.display = 'none';
+    }
+
+    async function uploadProfilePhoto(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const base64Image = e.target.result;
+            document.getElementById('profileModalAvatar').src = base64Image;
+
+            // Kirim update foto ke server
+            try {
+                const res = await fetch(`/api/employees/${loggedInEmployee.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        employee_id: loggedInEmployee.employee_id,
+                        name: loggedInEmployee.name,
+                        job_position: loggedInEmployee.job_position,
+                        organization: loggedInEmployee.organization || 'MANAGEMENT',
+                        bank: loggedInEmployee.bank,
+                        no_rekening: loggedInEmployee.no_rekening,
+                        photo: base64Image,
+                        join_date: loggedInEmployee.join_date,
+                        store_id: loggedInEmployee.store_id
+                    })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    loggedInEmployee.photo = base64Image;
+                    localStorage.setItem('employee', JSON.stringify(loggedInEmployee));
+                    alert('Foto profil berhasil diperbarui!');
+                } else {
+                    alert('Gagal memperbarui foto profil.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Terjadi kesalahan saat mengunggah foto.');
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function onStoreChange() {
+        const select = document.getElementById('activeStoreSelect');
+        selectedStoreId = select.value;
+        if (!selectedStoreId) return;
+
+        const store = storesData.find(s => s.id == selectedStoreId);
+        if (store) {
+            updateStoreMapMarker(store);
+            updateStoreDistanceInfo();
+            loadShifts(selectedStoreId);
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('employee');
+        window.location.href = 'login.html';
+    }
+
+    async function loadShifts(storeId) {
+        const select = document.getElementById('shiftSelect');
+        select.innerHTML = '<option value="">-- Pilih Shift Kerja --</option>';
+        const res = await fetch(`/api/shifts/${storeId}`);
+        const shifts = await res.json();
+        shifts.forEach(sh => {
+            let opt = document.createElement('option');
+            opt.value = sh.id;
+            opt.textContent = `${sh.shift_name} (${sh.time_range})`;
+            select.appendChild(opt);
+        });
+    }
+
+    function updateStoreMapMarker(store) {
+        if (storeMarker) map.removeLayer(storeMarker);
+        storeMarker = L.marker([store.latitude, store.longitude]).addTo(map)
+            .bindPopup(`<b>${store.store_name}</b>`).openPopup();
+        map.setView([store.latitude, store.longitude], 14);
+    }
+
+    function updateUserMapMarker() {
+        if (currentLat === null || currentLon === null) return;
+        if (userMarker) map.removeLayer(userMarker);
+        userMarker = L.circleMarker([currentLat, currentLon], {
+            radius: 8, color: '#e31b23', fillColor: '#ff5252', fillOpacity: 0.9
+        }).addTo(map).bindPopup("Lokasi Anda");
+    }
+
+    function updateStoreDistanceInfo() {
+        const store = storesData.find(s => s.id == selectedStoreId);
+        if (!store) return;
+        
+        document.getElementById('storeCoordText').textContent = `📍 Titik Toko (${store.store_name}): ${store.latitude}, ${store.longitude} (Radius: ${store.radius_meter}m)`;
+
+        if (currentLat !== null && currentLon !== null) {
+            const distance = calculateDistance(currentLat, currentLon, store.latitude, store.longitude);
+            if (isManagementSMB) {
+                document.getElementById('storeDistanceText').textContent = `📏 Jarak Anda dari toko ini: ±${Math.round(distance)} meter (Management SMB: Bebas Absen di Semua Cabang)`;
+            } else {
+                document.getElementById('storeDistanceText').textContent = `📏 Jarak Anda dari toko: ±${Math.round(distance)} meter`;
+            }
+        }
+    }
+
+    function takeSnapshot() {
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        capturedImage = canvas.toDataURL('image/png');
+        document.getElementById('previewContainer').innerHTML = `<img src="${capturedImage}" style="width: 80px; border-radius: 4px; border: 2px solid #e31b23;"/><br><span style="color:green; font-size:11px;">Tersimpan!</span>`;
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))); 
+    }
+
+    async function submitAttendance(type) {
+        const shift_id = document.getElementById('shiftSelect').value;
+        if (!shift_id) {
+            alert('Pilih shift kerja terlebih dahulu!');
+            return;
+        }
+        if (!capturedImage && type === 'in') {
+            alert('Ambil foto selfie terlebih dahulu!');
+            return;
+        }
+        if (!selectedStoreId) {
+            alert('Pilih cabang toko tujuan absensi terlebih dahulu!');
+            return;
+        }
+
+        if (!isManagementSMB) {
+            const store = storesData.find(s => s.id == selectedStoreId);
+            if (store && currentLat !== null && currentLon !== null) {
+                const distance = calculateDistance(currentLat, currentLon, store.latitude, store.longitude);
+                if (distance > store.radius_meter && type === 'in') {
+                    alert(`Di luar radius toko! Jarak Anda: ${Math.round(distance)} meter.`);
+                    return;
+                }
+            }
+        }
+
+        const res = await fetch('/api/attendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                employee_id: loggedInEmployee.id, 
+                shift_id, 
+                store_id: selectedStoreId, 
+                type, 
+                selfie: capturedImage 
+            })
+        });
+
+        const result = await res.json();
+        alert(result.message);
+        loadAttendance();
+    }
+
+    async function loadAttendance() {
+        const res = await fetch('/api/attendance');
+        const data = await res.json();
+        const tbody = document.getElementById('attendanceTable');
+        tbody.innerHTML = '';
+        data.forEach(row => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>[${row.employee_id}] ${row.employee_name}</strong><br><small>${row.job_position}</small></td>
+                    <td>${row.store_name}</td>
+                    <td>${row.shift_name}</td>
+                    <td>${row.clock_in || '-'}</td>
+                    <td>${row.clock_out || '-'}</td>
+                    <td>${row.selfie ? `<img src="${row.selfie}" width="40" style="border-radius:2px;" />` : '-'}</td>
+                </tr>
+            `;
+        });
+    }
+
+    initApp();
+</script>
+
+</body>
+</html>
