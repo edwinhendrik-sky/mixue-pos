@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
 
+// INISIALISASI app HARUS DI SINI (SEBELUM app.use)
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -12,75 +13,7 @@ app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname)));
 
-// Inisialisasi Database SQLite
-const db = new sqlite3.Database('./database.sqlite', (err) => {
-    if (err) console.error('Gagal koneksi database:', err.message);
-    else console.log('Terhubung ke database SQLite.');
-});
-
-// Pembuatan Tabel Otomatis
-db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS stores (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        store_name TEXT UNIQUE,
-        latitude REAL,
-        longitude REAL,
-        radius_meter INTEGER
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS shifts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        store_id INTEGER,
-        shift_name TEXT,
-        time_range TEXT,
-        FOREIGN KEY(store_id) REFERENCES stores(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS employees (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_id TEXT UNIQUE,
-        name TEXT,
-        job_position TEXT,
-        organization TEXT,
-        bank TEXT,
-        no_rekening TEXT,
-        photo TEXT,
-        join_date TEXT,
-        store_id INTEGER,
-        FOREIGN KEY(store_id) REFERENCES stores(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS employee_salaries (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_id INTEGER,
-        basic_salary REAL DEFAULT 0,
-        allowance_leader REAL DEFAULT 0,
-        allowance_weekend REAL DEFAULT 0,
-        allowance_overtime REAL DEFAULT 0,
-        allowance_sosmed REAL DEFAULT 0,
-        bonus_sales REAL DEFAULT 0,
-        bonus_other REAL DEFAULT 0,
-        deduction_late REAL DEFAULT 0,
-        deduction_absence REAL DEFAULT 0,
-        deduction_cashadvance REAL DEFAULT 0,
-        deduction_other REAL DEFAULT 0,
-        FOREIGN KEY(employee_id) REFERENCES employees(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS attendance (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_id INTEGER,
-        employee_name TEXT,
-        store_name TEXT,
-        shift_name TEXT,
-        date TEXT,
-        clock_in TEXT,
-        clock_out TEXT,
-        selfie TEXT
-    )`);
-});
-
-// --- API STORES ---
+// --- 1. API STORES ---
 app.get('/api/stores', (req, res) => {
     db.all("SELECT * FROM stores", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -88,7 +21,7 @@ app.get('/api/stores', (req, res) => {
     });
 });
 
-// --- API SHIFTS ---
+// --- 2. API SHIFTS ---
 app.get('/api/shifts/:store_id', (req, res) => {
     const { store_id } = req.params;
     db.all("SELECT * FROM shifts WHERE store_id = ?", [store_id], (err, rows) => {
@@ -97,7 +30,7 @@ app.get('/api/shifts/:store_id', (req, res) => {
     });
 });
 
-// --- API EMPLOYEES & SALARY ---
+// --- 3. API EMPLOYEES & SALARY (Database Karyawan & Gaji) ---
 app.get('/api/employees-with-salary', (req, res) => {
     const query = `
         SELECT e.*, s.store_name, 
@@ -133,10 +66,7 @@ app.post('/api/employees', (req, res) => {
 
             if (salary_data) {
                 db.run(`INSERT INTO employee_salaries (employee_id, basic_salary, allowance_leader, allowance_weekend, allowance_overtime, allowance_sosmed, bonus_sales, bonus_other, deduction_late, deduction_absence, deduction_cashadvance, deduction_other) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [newEmpId, salary_data.basic_salary || 0, salary_data.allowance_leader || 0, salary_data.allowance_weekend || 0, salary_data.allowance_overtime || 0, salary_data.allowance_sosmed || 0, salary_data.bonus_sales || 0, salary_data.bonus_other || 0, salary_data.deduction_late || 0, salary_data.deduction_absence || 0, salary_data.deduction_cashadvance || 0, salary_data.deduction_other || 0],
-                    (salErr) => {
-                        if (salErr) console.error("Gagal simpan gaji:", salErr.message);
-                    }
+                    [newEmpId, salary_data.basic_salary || 0, salary_data.allowance_leader || 0, salary_data.allowance_weekend || 0, salary_data.allowance_overtime || 0, salary_data.allowance_sosmed || 0, salary_data.bonus_sales || 0, salary_data.bonus_other || 0, salary_data.deduction_late || 0, salary_data.deduction_absence || 0, salary_data.deduction_cashadvance || 0, salary_data.deduction_other || 0]
                 );
             }
             res.json({ success: true, message: 'Karyawan dan komponen gaji berhasil ditambahkan!' });
@@ -181,7 +111,7 @@ app.delete('/api/employees/:id', (req, res) => {
     });
 });
 
-// --- API ATTENDANCE (DENGAN JOIN OTOMATIS) ---
+// --- 4. API ATTENDANCE (Database Absensi) ---
 app.post('/api/attendance', (req, res) => {
     const { employee_id, shift_id, store_id, type, selfie } = req.body;
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -234,7 +164,27 @@ app.post('/api/attendance', (req, res) => {
         });
     });
 });
-
+app.post('/api/login', (req, res) => {
+    const { employee_id, password } = req.body;
+    
+    // Query untuk mencocokkan ID karyawan dan PIN/Password
+    const query = `
+        SELECT e.*, s.store_name 
+        FROM employees e 
+        LEFT JOIN stores s ON e.store_id = s.id 
+        WHERE e.employee_id = ? AND e.pin = ?
+    `;
+    
+    db.get(query, [employee_id, password], (err, row) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: 'Kesalahan server: ' + err.message });
+        }
+        if (!row) {
+            return res.json({ success: false, message: 'ID Karyawan atau Password salah!' });
+        }
+        res.json({ success: true, employee: row });
+    });
+});
 app.get('/api/attendance', (req, res) => {
     const query = `
         SELECT a.id, 
@@ -255,5 +205,5 @@ app.get('/api/attendance', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server berjalan di http://localhost:${PORT}`);
+    console.log(`🚀 Server berjalan modular di http://localhost:${PORT}`);
 });
