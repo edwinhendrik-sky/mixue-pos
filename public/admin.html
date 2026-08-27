@@ -20,7 +20,7 @@
             padding: 20px; 
         }
         .container { 
-            max-width: 1350px; 
+            max-width: 1400px; 
             margin: auto; 
             background: white; 
             padding: 30px; 
@@ -87,32 +87,45 @@
         .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .stat-card { padding: 18px; border-radius: 10px; text-align: center; color: white; box-shadow: 0 6px 15px rgba(0,0,0,0.08); }
-        .card-total { background: linear-gradient(135deg, #3a7bd5, #3a6073); }
-        .card-present { background: linear-gradient(135deg, #11998e, #38ef7d); }
-        .card-absent { background: linear-gradient(135deg, var(--mixue-red), #ff416c); }
-        .card-rate { background: linear-gradient(135deg, #8e2de2, #4a00e0); }
-        .stat-card h4 { margin: 0 0 6px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; }
-        .stat-card p { margin: 0; font-size: 26px; font-weight: bold; }
+        /* DASHBOARD SIDEBAR LAYOUT (GRID) */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 25px;
+            align-items: start;
+        }
+        @media (max-width: 992px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+        }
 
-        /* Slicer / Interactive Filter Styling */
-        .slicer-panel { background: #fff5f5; padding: 20px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--mixue-border); box-shadow: 0 4px 12px rgba(227, 27, 35, 0.05); }
-        .slicer-section { margin-bottom: 15px; }
+        /* SIDEBAR SLICER PANEL */
+        .slicer-sidebar { 
+            background: #fff5f5; 
+            padding: 20px; 
+            border-radius: 12px; 
+            border: 1px solid var(--mixue-border); 
+            box-shadow: 0 4px 12px rgba(227, 27, 35, 0.05);
+            position: sticky;
+            top: 20px;
+        }
+        .slicer-section { margin-bottom: 20px; }
         .slicer-section:last-child { margin-bottom: 0; }
-        .slicer-label { font-weight: bold; font-size: 13px; color: var(--mixue-dark-red); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-        .slicer-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .slicer-label { font-weight: bold; font-size: 13px; color: var(--mixue-dark-red); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--mixue-border); padding-bottom: 6px; }
+        .slicer-chips { display: flex; flex-direction: column; gap: 6px; max-height: 350px; overflow-y: auto; padding-right: 4px; }
         .slicer-chip {
             background: #ffffff;
             border: 1px solid #ffccd2;
             color: #444;
-            padding: 7px 14px;
-            border-radius: 20px;
+            padding: 9px 14px;
+            border-radius: 8px;
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            text-align: left;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
         .slicer-chip:hover { background: #ffebee; border-color: var(--mixue-red); color: var(--mixue-red); }
         .slicer-chip.active {
@@ -122,12 +135,28 @@
             box-shadow: 0 3px 8px rgba(227, 27, 35, 0.3);
         }
 
+        /* MAIN CONTENT AREA */
+        .dashboard-main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
+        .stat-card { padding: 18px; border-radius: 10px; text-align: center; color: white; box-shadow: 0 6px 15px rgba(0,0,0,0.08); }
+        .card-total { background: linear-gradient(135deg, #3a7bd5, #3a6073); }
+        .card-present { background: linear-gradient(135deg, #11998e, #38ef7d); }
+        .card-absent { background: linear-gradient(135deg, var(--mixue-red), #ff416c); }
+        .card-rate { background: linear-gradient(135deg, #8e2de2, #4a00e0); }
+        .stat-card h4 { margin: 0 0 6px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; }
+        .stat-card p { margin: 0; font-size: 24px; font-weight: bold; }
+
         .store-section-card {
             background: #fff;
             border: 1px solid #e0e0e0;
             border-radius: 10px;
             padding: 20px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.02);
             border-top: 6px solid var(--mixue-red);
         }
@@ -203,49 +232,54 @@
         <button onclick="switchTab('salaryTab', event)">💰 Laporan & Komponen Gaji</button>
     </div>
 
-    <!-- TAB 1: DASHBOARD PER TOKO DENGAN SLICER INTERAKTIF -->
+    <!-- TAB 1: DASHBOARD PER TOKO DENGAN SIDEBAR SLICER -->
     <div id="dashboardTab" class="tab-content active">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-            <h3>Ringkasan & Kehadiran Operasional Per Toko (Slicer Interaktif)</h3>
+            <h3>Ringkasan & Kehadiran Operasional Per Toko</h3>
             <button onclick="refreshDashboardData()" class="btn btn-success" style="padding: 8px 16px; font-size: 13px;">🔄 Refresh Data</button>
         </div>
-        
-        <!-- PANEL SLICER INTERAKTIF -->
-        <div class="slicer-panel">
-            <div class="slicer-section">
-                <div class="slicer-label">🏢 Slicer Cabang Toko:</div>
-                <div class="slicer-chips" id="storeSlicerContainer">
-                    <!-- Dirender dinamis oleh JS -->
+
+        <div class="dashboard-layout">
+            <!-- SIDEBAR PANEL SLICER DI SEBELAH KIRI -->
+            <div class="slicer-sidebar">
+                <div class="slicer-section">
+                    <div class="slicer-label">🏢 Slicer Cabang Toko:</div>
+                    <div class="slicer-chips" id="storeSlicerContainer">
+                        <!-- Dirender dinamis oleh JS -->
+                    </div>
+                </div>
+                <div class="slicer-section">
+                    <div class="slicer-label">📅 Slicer Tanggal Absen:</div>
+                    <div class="slicer-chips" id="dateSlicerContainer">
+                        <!-- Dirender dinamis oleh JS -->
+                    </div>
                 </div>
             </div>
-            <div class="slicer-section" style="margin-top: 15px;">
-                <div class="slicer-label">📅 Slicer Tanggal Absen:</div>
-                <div class="slicer-chips" id="dateSlicerContainer">
-                    <!-- Dirender dinamis oleh JS -->
+
+            <!-- KONTEN UTAMA DASHBOARD DI SEBELAH KANAN -->
+            <div class="dashboard-main-content">
+                <div class="stats-grid">
+                    <div class="stat-card card-total">
+                        <h4>Total Karyawan</h4>
+                        <p id="statTotalEmp">0</p>
+                    </div>
+                    <div class="stat-card card-present">
+                        <h4>Sudah Absen</h4>
+                        <p id="statPresentEmp">0</p>
+                    </div>
+                    <div class="stat-card card-absent">
+                        <h4>Belum Absen</h4>
+                        <p id="statAbsentEmp">0</p>
+                    </div>
+                    <div class="stat-card card-rate">
+                        <h4>Tingkat Kehadiran</h4>
+                        <p id="statAttendanceRate">0%</p>
+                    </div>
                 </div>
+
+                <div id="storeDashboardContainer"></div>
             </div>
         </div>
-
-        <div class="stats-grid">
-            <div class="stat-card card-total">
-                <h4>Total Karyawan</h4>
-                <p id="statTotalEmp">0</p>
-            </div>
-            <div class="stat-card card-present">
-                <h4>Sudah Absen</h4>
-                <p id="statPresentEmp">0</p>
-            </div>
-            <div class="stat-card card-absent">
-                <h4>Belum Absen</h4>
-                <p id="statAbsentEmp">0</p>
-            </div>
-            <div class="stat-card card-rate">
-                <h4>Tingkat Kehadiran</h4>
-                <p id="statAttendanceRate">0%</p>
-            </div>
-        </div>
-
-        <div id="storeDashboardContainer"></div>
     </div>
 
     <!-- TAB 2: LAPORAN ABSENSI -->
@@ -497,13 +531,11 @@
 
     function initDateSlicers() {
         const container = document.getElementById('dateSlicerContainer');
-        // Ambil 5 tanggal unik terakhir dari data absensi + hari ini
         const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
         let dates = [...new Set(allAttendance.map(a => a.date))];
         if (!dates.includes(todayStr)) dates.push(todayStr);
         dates.sort().reverse();
-        // Batasi maksimal 7 tanggal terbaru agar rapi
-        dates = dates.slice(0, 7);
+        dates = dates.slice(0, 7); // 7 tanggal terbaru
 
         let html = '';
         dates.forEach(d => {
@@ -557,7 +589,10 @@
 
             empInStore.forEach(emp => {
                 totalEmp++;
-                const record = filteredAttendance.find(item => String(item.employee_id).trim().toUpperCase() === String(emp.employee_id).trim().toUpperCase());
+                const record = filteredAttendance.find(item => 
+                    (String(item.employee_id).trim().toUpperCase() === String(emp.employee_id).trim().toUpperCase()) ||
+                    (Number(item.employee_id) === Number(emp.id))
+                );
                 const photoUrl = emp.photo || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
 
                 if (record && record.clock_in) {
@@ -744,17 +779,17 @@
     function renderAttendanceTable(data) {
         const tbody = document.getElementById('attendanceTableBody');
         tbody.innerHTML = '';
-        if (data.length === 0) {
+        if (!data || data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Belum ada data absensi.</td></tr>`;
             return;
         }
         data.forEach(row => {
             tbody.innerHTML += `
                 <tr>
-                    <td><strong>[${row.employee_id}]</strong> ${row.employee_name}<br><small style="color:#666;">${row.job_position}</small></td>
-                    <td>${row.store_name}</td>
-                    <td>${row.shift_name}</td>
-                    <td>${row.date}</td>
+                    <td><strong>[${row.employee_id || '-'}]</strong> ${row.employee_name || 'Karyawan'}<br><small style="color:#666;">${row.job_position || '-'}</small></td>
+                    <td>${row.store_name || '-'}</td>
+                    <td>${row.shift_name || '-'}</td>
+                    <td>${row.date || '-'}</td>
                     <td>${row.clock_in || '-'}</td>
                     <td>${row.clock_out || '-'}</td>
                     <td>${row.selfie ? `<img src="${row.selfie}" width="35" style="border-radius:4px; border:1px solid #ddd;" />` : '-'}</td>
