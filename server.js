@@ -334,13 +334,19 @@ app.post('/api/attendance', (req, res) => {
     });
 });
 
+// 9. Ambil Rekap Absensi (Di-JOIN dengan tabel employees agar ID string & data lengkap terbaca akurat)
 app.get('/api/attendance', (req, res) => {
-    db.all("SELECT * FROM attendance ORDER BY id DESC", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+    const query = `
+        SELECT a.id, e.employee_id as employee_id, a.employee_name, a.store_name, a.shift_name, a.date, a.clock_in, a.clock_out, a.selfie, e.job_position
+        FROM attendance a
+        LEFT JOIN employees e ON a.employee_id = e.id
+        ORDER BY a.id DESC
+    `;
+    db.all(query, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.com || err.message });
         res.json(rows);
     });
 });
-
 app.listen(PORT, () => {
     console.log(`Server Mixue Management berjalan di port ${PORT}`);
 });
