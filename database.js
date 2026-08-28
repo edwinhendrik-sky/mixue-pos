@@ -1,7 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-// Memisahkan atau memusatkan file database SQLite
 const dbPath = path.resolve(__dirname, 'mixue_system.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
@@ -14,7 +13,6 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 function initDatabases() {
     db.serialize(() => {
-        // 1. Database Toko (Stores)
         db.run(`CREATE TABLE IF NOT EXISTS stores (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             store_name TEXT UNIQUE NOT NULL,
@@ -23,7 +21,6 @@ function initDatabases() {
             radius_meter INTEGER DEFAULT 50000
         )`);
 
-        // 2. Database Shift
         db.run(`CREATE TABLE IF NOT EXISTS shifts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             store_id INTEGER,
@@ -32,7 +29,6 @@ function initDatabases() {
             FOREIGN KEY(store_id) REFERENCES stores(id)
         )`);
 
-        // 3. Database Karyawan (Employees)
         db.run(`CREATE TABLE IF NOT EXISTS employees (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id TEXT UNIQUE NOT NULL,
@@ -48,7 +44,6 @@ function initDatabases() {
             FOREIGN KEY(store_id) REFERENCES stores(id)
         )`);
 
-        // 4. Database Gaji Karyawan (Employee Salaries)
         db.run(`CREATE TABLE IF NOT EXISTS employee_salaries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id INTEGER,
@@ -66,7 +61,6 @@ function initDatabases() {
             FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
         )`);
 
-        // 5. Database Absensi (Attendance)
         db.run(`CREATE TABLE IF NOT EXISTS attendance (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id INTEGER,
@@ -80,7 +74,6 @@ function initDatabases() {
             FOREIGN KEY(employee_id) REFERENCES employees(id)
         )`);
 
-        // Seed / Initial Data Check
         db.get(`SELECT COUNT(*) as count FROM stores`, (err, row) => {
             if (row && row.count === 0) {
                 console.log('⚙️ Mengisi data awal master toko & shift...');
@@ -105,7 +98,6 @@ function initDatabases() {
                     });
                 });
 
-                // Inisialisasi Akun Admin Utama
                 db.run(`INSERT INTO employees (employee_id, name, job_position, organization, bank, no_rekening, pin, join_date, store_id) VALUES ('admin', 'Administrator Pusat', 'ADMINISTRATOR', 'MANAGEMENT SMB', '-', '-', 'admin123', '2024-01-01', 1)`, function(err) {
                     if (!err) {
                         db.run(`INSERT INTO employee_salaries (employee_id) VALUES (?)`, [this.lastID]);
