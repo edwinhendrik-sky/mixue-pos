@@ -1,10 +1,9 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
+const db = require('./database');
 
-// INISIALISASI app HARUS DI SINI (SEBELUM app.use)
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -13,7 +12,29 @@ app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname)));
 
-// --- 1. API STORES ---
+// --- API LOGIN ---
+app.post('/api/login', (req, res) => {
+    const { employee_id, password } = req.body;
+    
+    const query = `
+        SELECT e.*, s.store_name 
+        FROM employees e 
+        LEFT JOIN stores s ON e.store_id = s.id 
+        WHERE e.employee_id = ? AND e.pin = ?
+    `;
+    
+    db.get(query, [employee_id, password], (err, row) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: 'Kesalahan server: ' + err.message });
+        }
+        if (!row) {
+            return res.json({ success: false, message: 'ID Karyawan atau Password salah!' });
+        }
+        res.json({ success: true, employee: row });
+    });
+});
+
+// --- API STORES ---
 app.get('/api/stores', (req, res) => {
     db.all("SELECT * FROM stores", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -21,7 +42,7 @@ app.get('/api/stores', (req, res) => {
     });
 });
 
-// --- 2. API SHIFTS ---
+// --- API SHIFTS ---
 app.get('/api/shifts/:store_id', (req, res) => {
     const { store_id } = req.params;
     db.all("SELECT * FROM shifts WHERE store_id = ?", [store_id], (err, rows) => {
@@ -30,7 +51,7 @@ app.get('/api/shifts/:store_id', (req, res) => {
     });
 });
 
-// --- 3. API EMPLOYEES & SALARY (Database Karyawan & Gaji) ---
+// --- API EMPLOYEES & SALARY ---
 app.get('/api/employees-with-salary', (req, res) => {
     const query = `
         SELECT e.*, s.store_name, 
@@ -111,7 +132,7 @@ app.delete('/api/employees/:id', (req, res) => {
     });
 });
 
-// --- 4. API ATTENDANCE (Database Absensi) ---
+// --- API ATTENDANCE ---
 app.post('/api/attendance', (req, res) => {
     const { employee_id, shift_id, store_id, type, selfie } = req.body;
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -164,37 +185,7 @@ app.post('/api/attendance', (req, res) => {
         });
     });
 });
-// Pastikan endpoint /api/login ini ada di server.js Anda
-app.post('/api/login', (req, res) => {
-    const { employee_id, password } = req.body;
-    
-    const query = `
-        SELECT e.*, s.store_name 
-        FROM employees e 
-        LEFT JOIN stores s ON e.store_id = s.id 
-        WHERE e.employee_id = ? AND e.pin = ?
-    `;
-    
-    db.get(query, [employee_id, password], (err, row) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: 'Kesalahan server: ' + err.message });
-        }
-        if (!row) {
-            return res.json({ success: false, message: 'ID Karyawan atau Password salah!' });
-        }
-        res.json({ success: true, employee: row });
-    });
-});
-    db.get(query, [employee_id, password], (err, row) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: 'Kesalahan server: ' + err.message });
-        }
-        if (!row) {
-            return res.json({ success: false, message: 'ID Karyawan atau Password salah!' });
-        }
-        res.json({ success: true, employee: row });
-    });
-});
+
 app.get('/api/attendance', (req, res) => {
     const query = `
         SELECT a.id, 
