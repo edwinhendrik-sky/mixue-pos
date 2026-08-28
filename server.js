@@ -164,10 +164,10 @@ app.post('/api/attendance', (req, res) => {
         });
     });
 });
+// Pastikan endpoint /api/login ini ada di server.js Anda
 app.post('/api/login', (req, res) => {
     const { employee_id, password } = req.body;
     
-    // Query untuk mencocokkan ID karyawan dan PIN/Password
     const query = `
         SELECT e.*, s.store_name 
         FROM employees e 
@@ -175,6 +175,16 @@ app.post('/api/login', (req, res) => {
         WHERE e.employee_id = ? AND e.pin = ?
     `;
     
+    db.get(query, [employee_id, password], (err, row) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: 'Kesalahan server: ' + err.message });
+        }
+        if (!row) {
+            return res.json({ success: false, message: 'ID Karyawan atau Password salah!' });
+        }
+        res.json({ success: true, employee: row });
+    });
+});
     db.get(query, [employee_id, password], (err, row) => {
         if (err) {
             return res.status(500).json({ success: false, message: 'Kesalahan server: ' + err.message });
